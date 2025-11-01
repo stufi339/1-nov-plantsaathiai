@@ -14,8 +14,13 @@ export const supabaseAnalyticsService = {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       
-      // Log to BlackBox (real-time)
-      await blackBoxService.logEvent(eventType, eventData);
+      // Log to BlackBox (real-time) - using correct method
+      blackBoxService.logUserInteraction(
+        eventType as any,
+        'analytics_event',
+        undefined,
+        eventData
+      );
       
       // Log to Supabase (persistent storage)
       const { error } = await supabase
@@ -86,23 +91,25 @@ export const supabaseAnalyticsService = {
   async syncBlackBoxData() {
     try {
       // Get BlackBox analytics
-      const blackBoxData = await blackBoxService.getAnalytics();
+      const blackBoxData = blackBoxService.getAnalytics();
       
-      if (!blackBoxData || !blackBoxData.events) return;
+      if (!blackBoxData || !blackBoxData.userInteractions) return;
 
       // Batch insert to Supabase
-      const events = blackBoxData.events.map((event: any) => ({
-        event_type: event.type,
-        event_data: event.data,
+      const events = blackBoxData.userInteractions.map((event: any) => ({
+        event_type: event.interactionType,
+        event_data: event.metadata || {},
         created_at: event.timestamp
       }));
 
-      const { error } = await supabase
-        .from('analytics_events')
-        .insert(events);
+      if (events.length > 0) {
+        const { error } = await supabase
+          .from('analytics_events')
+          .insert(events);
 
-      if (error) {
-        console.error('Batch sync error:', error);
+        if (error) {
+          console.error('Batch sync error:', error);
+        }
       }
     } catch (error) {
       console.error('BlackBox sync error:', error);
