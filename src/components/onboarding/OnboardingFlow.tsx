@@ -76,7 +76,10 @@ export default function OnboardingFlow() {
 
             // Mark onboarding as complete
             localStorage.setItem('onboarding_complete', 'true');
-            navigate('/dashboard');
+            
+            // Force navigation and reload to ensure state updates
+            navigate('/dashboard', { replace: true });
+            window.location.reload();
         } catch (error) {
             console.error('Error creating field:', error);
             toast({
@@ -90,8 +93,17 @@ export default function OnboardingFlow() {
     };
 
     const handleSkip = () => {
+        // Mark onboarding as complete
         localStorage.setItem('onboarding_complete', 'true');
-        navigate('/dashboard');
+        
+        toast({
+            title: 'Skipped',
+            description: 'You can add fields later from the dashboard.',
+        });
+        
+        // Force navigation and reload to ensure state updates
+        navigate('/dashboard', { replace: true });
+        window.location.reload();
     };
 
     return (
