@@ -1,166 +1,200 @@
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Camera, MapPin, BarChart3, Bot, Sprout, TrendingUp, Activity, Droplets } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { DashboardHeader } from "./DashboardHeader";
+import { WeatherCard } from "./WeatherCard";
+import { FieldsOverview } from "./FieldsOverview";
+import { ActionableInsights } from "./ActionableInsights";
+import { QuickActions } from "./QuickActions";
+import { YieldSummary } from "./YieldSummary";
+import { DiseaseMonitoring } from "./DiseaseMonitoring";
+import { MarketplaceRecommendations } from "./MarketplaceRecommendations";
+import { EducationalVideos } from "./EducationalVideos";
+import { CommunityGallery } from "./CommunityGallery";
+import { FarmerStories } from "./FarmerStories";
+import { weatherService } from "@/lib/weatherService";
+import { jalSaathiService } from "@/lib/jalSaathiService";
+import { diseaseDetectionService } from "@/lib/diseaseDetectionService";
 
 export const DashboardView = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [weatherData, setWeatherData] = useState<any>(null);
+  const [irrigationData, setIrrigationData] = useState<any>(null);
+  const [fieldsData, setFieldsData] = useState<any[]>([]);
+  const [diseaseOutbreaks, setDiseaseOutbreaks] = useState<any[]>([]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+
+      // Load weather data
+      try {
+        const location = await weatherService.getCurrentLocation();
+        const weather = await weatherService.getWeatherByCoords(location.lat, location.lon);
+        setWeatherData(weather);
+      } catch (error) {
+        console.error("Failed to load weather:", error);
+        // Fallback to default location
+        const weather = await weatherService.getWeatherByCity("Delhi");
+        setWeatherData(weather);
+      }
+
+      // Load fields data from localStorage
+      const fields = loadFieldsFromStorage();
+      setFieldsData(fields);
+
+      // Load disease outbreaks
+      const outbreaks = diseaseDetectionService.getAllFieldsWithDiseases();
+      setDiseaseOutbreaks(outbreaks);
+
+      // Load irrigation schedule for first field (if exists)
+      if (fields.length > 0) {
+        try {
+          const firstField = fields[0];
+          const cropStage = jalSaathiService.getCropStage(
+            new Date(firstField.sowingDate || Date.now() - 60 * 24 * 60 * 60 * 1000),
+            firstField.cropType || "rice"
+          );
+          const soilType = jalSaathiService.determineSoilType(firstField.soilData);
+          
+          const irrigation = await jalSaathiService.generateIrrigationSchedule(
+            firstField.id,
+            firstField.cropType || "rice",
+            cropStage,
+            soilType,
+            firstField.location || "Delhi"
+          );
+          setIrrigationData(irrigation);
+        } catch (error) {
+          console.error("Failed to load irrigation data:", error);
+        }
+      }
+
+    } catch (error) {
+      console.error("Failed to load dashboard data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadFieldsFromStorage = () => {
+    try {
+      // Load fields list from localStorage
+      const fieldsList = JSON.parse(localStorage.getItem('fields_list') || '[]');
+      
+      // Enrich each field with data from field_*_data
+      const enrichedFields = fieldsList.map((field: any) => {
+        try {
+          const fieldDataKey = `field_${field.id}_data`;
+          const fieldData = localStorage.getItem(fieldDataKey);
+          if (fieldData) {
+            const parsedData = JSON.parse(fieldData);
+            return {
+              ...field,
+              ...parsedData,
+              // Preserve original field properties
+              name: field.name,
+              cropType: field.cropType,
+              area: field.area,
+              sowingDate: field.sowingDate
+            };
+          }
+        } catch (error) {
+          console.error(`Failed to load data for field ${field.id}:`, error);
+        }
+        return field;
+      });
+      
+      return enrichedFields;
+    } catch (error) {
+      console.error("Failed to load fields:", error);
+      return [];
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">{t("loading")}...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-hero pb-20">
-      {/* Header */}
-      <header className="px-6 pt-8 pb-6">
-        <h1 className="text-3xl font-bold text-foreground mb-1">
-          Hello, Farmer 👋
-        </h1>
-        <p className="text-muted-foreground">Your Farm Intelligence Today</p>
-      </header>
+    <div className="min-h-screen bg-gradient-to-b from-green-50/30 to-background">
+      <div className="space-y-6 p-4 max-w-7xl mx-auto pb-20">
+        {/* Hero Section */}
+        <DashboardHeader 
+          weatherData={weatherData}
+          irrigationData={irrigationData}
+          diseaseOutbreaks={diseaseOutbreaks}
+        />
 
-      {/* Quick Stats Grid */}
-      <div className="px-6 mb-8">
-        <div className="grid grid-cols-2 gap-4">
-          <Card className="p-4 bg-card shadow-soft hover:shadow-elevated transition-all">
-            <div className="flex items-start justify-between mb-2">
-              <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
-                <Activity className="w-5 h-5 text-success" />
-              </div>
-              <span className="text-xs font-medium text-success">+5%</span>
-            </div>
-            <p className="text-2xl font-bold text-foreground mb-1">0.75</p>
-            <p className="text-xs text-muted-foreground">Field Health (NDVI)</p>
-          </Card>
-
-          <Card className="p-4 bg-card shadow-soft hover:shadow-elevated transition-all">
-            <div className="flex items-start justify-between mb-2">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Sprout className="w-5 h-5 text-primary" />
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-foreground mb-1">3</p>
-            <p className="text-xs text-muted-foreground">Active Fields</p>
-          </Card>
-
-          <Card className="p-4 bg-card shadow-soft hover:shadow-elevated transition-all">
-            <div className="flex items-start justify-between mb-2">
-              <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                <Droplets className="w-5 h-5 text-warning" />
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-foreground mb-1">1</p>
-            <p className="text-xs text-muted-foreground">Active Alerts</p>
-          </Card>
-
-          <Card className="p-4 bg-card shadow-soft hover:shadow-elevated transition-all">
-            <div className="flex items-start justify-between mb-2">
-              <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-info" />
-              </div>
-              <span className="text-xs font-medium text-success">80%</span>
-            </div>
-            <p className="text-2xl font-bold text-foreground mb-1">5.2</p>
-            <p className="text-xs text-muted-foreground">Yield (tons/ha)</p>
-          </Card>
+        {/* Weather & Today's Irrigation - Premium Card */}
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-xl">
+          <WeatherCard weatherData={weatherData} irrigationData={irrigationData} />
         </div>
-      </div>
 
-      {/* Quick Actions */}
-      <div className="px-6 mb-8">
-        <h2 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
-        <div className="space-y-3">
-          <Button 
-            onClick={() => navigate("/soilsati")}
-            className="w-full h-auto py-4 bg-gradient-primary hover:shadow-glow transition-all justify-start"
-          >
-            <Camera className="w-6 h-6 mr-3" />
-            <div className="text-left">
-              <p className="font-semibold">Scan Plant Disease</p>
-              <p className="text-xs opacity-90">Detect and diagnose issues</p>
-            </div>
-          </Button>
+        {/* Critical Section - What to do TODAY */}
+        <ActionableInsights 
+          weatherData={weatherData}
+          irrigationData={irrigationData}
+          fields={fieldsData}
+        />
 
-          <Button 
-            onClick={() => navigate("/soilsati/map-field")}
-            variant="outline"
-            className="w-full h-auto py-4 justify-start border-primary/20 hover:bg-primary/5"
-          >
-            <MapPin className="w-6 h-6 mr-3 text-primary" />
-            <div className="text-left">
-              <p className="font-semibold">Map New Field</p>
-              <p className="text-xs text-muted-foreground">Add field boundary</p>
-            </div>
-          </Button>
+        {/* Quick Actions - Easy Access */}
+        <QuickActions />
 
-          <Button 
-            onClick={() => navigate("/soilsati")}
-            variant="outline"
-            className="w-full h-auto py-4 justify-start border-primary/20 hover:bg-primary/5"
-          >
-            <BarChart3 className="w-6 h-6 mr-3 text-primary" />
-            <div className="text-left">
-              <p className="font-semibold">Check Field Health</p>
-              <p className="text-xs text-muted-foreground">View vegetation indices</p>
-            </div>
-          </Button>
+        {/* Fields Overview */}
+        <FieldsOverview fields={fieldsData} />
+
+        {/* Educational Content Section */}
+        <div className="space-y-6 bg-white/50 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
+          {/* Educational Videos */}
+          <EducationalVideos />
+
+          {/* Divider */}
+          <div className="border-t border-gray-200 my-6" />
+
+          {/* Success Stories */}
+          <FarmerStories />
+
+          {/* Divider */}
+          <div className="border-t border-gray-200 my-6" />
+
+          {/* Community Gallery */}
+          <CommunityGallery />
         </div>
-      </div>
 
-      {/* Recent Activity */}
-      <div className="px-6 mb-8">
-        <h2 className="text-lg font-semibold text-foreground mb-4">Recent Activity</h2>
-        <Card className="p-4 bg-card shadow-soft space-y-3">
-          <div className="flex gap-3">
-            <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center flex-shrink-0">
-              <Activity className="w-5 h-5 text-success" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground">Field 1 NDVI updated - 0.68</p>
-              <p className="text-xs text-muted-foreground">Healthy • 2h ago</p>
-            </div>
+        {/* Yield Summary */}
+        {fieldsData.length > 0 && (
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 shadow-lg">
+            <YieldSummary fields={fieldsData} />
           </div>
+        )}
 
-          <div className="flex gap-3">
-            <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center flex-shrink-0">
-              <Camera className="w-5 h-5 text-warning" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground">Early Blight detected</p>
-              <p className="text-xs text-muted-foreground">Treatment recommended • 5h ago</p>
-            </div>
+        {/* Disease Monitoring */}
+        {diseaseOutbreaks.length > 0 && (
+          <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl p-6 shadow-lg">
+            <DiseaseMonitoring outbreaks={diseaseOutbreaks} />
           </div>
+        )}
 
-          <div className="flex gap-3">
-            <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center flex-shrink-0">
-              <TrendingUp className="w-5 h-5 text-info" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground">Yield prediction completed</p>
-              <p className="text-xs text-muted-foreground">5.2 tons/ha expected • 1d ago</p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Module Cards */}
-      <div className="px-6">
-        <h2 className="text-lg font-semibold text-foreground mb-4">Your Modules</h2>
-        <div className="grid grid-cols-2 gap-4">
-          <Card 
-            onClick={() => navigate("/soilsati")}
-            className="p-6 bg-gradient-primary text-white shadow-elevated hover:shadow-glow transition-all cursor-pointer"
-          >
-            <Sprout className="w-8 h-8 mb-3" />
-            <h3 className="font-semibold mb-1">SoilSati</h3>
-            <p className="text-xs opacity-90">Field Intelligence</p>
-          </Card>
-
-          <Card 
-            onClick={() => navigate("/guide")}
-            className="p-6 bg-card shadow-soft hover:shadow-elevated transition-all cursor-pointer"
-          >
-            <div className="text-4xl mb-3">📚</div>
-            <h3 className="font-semibold mb-1 text-foreground">Grok Guide</h3>
-            <p className="text-xs text-muted-foreground">Learn & Grow</p>
-          </Card>
+        {/* Marketplace Recommendations */}
+        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 shadow-lg">
+          <MarketplaceRecommendations 
+            weatherData={weatherData}
+            fields={fieldsData}
+          />
         </div>
       </div>
     </div>

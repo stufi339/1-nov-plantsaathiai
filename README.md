@@ -1,8 +1,38 @@
-# Welcome to your Lovable project
+# Plant Saathi - Smart Agriculture Platform
 
 ## Project info
 
 **URL**: https://lovable.dev/projects/e01af0c5-2b23-48ce-bf22-791e6256593d
+
+## Features
+
+### 🌾 Soil Saathi
+- Real-time soil analysis using satellite data
+- NPK (Nitrogen, Phosphorus, Potassium) predictions
+- Vegetation indices (NDVI, NDRE, NDWI, etc.)
+- Field mapping with Google Maps integration
+- Comprehensive soil properties analysis
+
+### 🦠 Disease Detection (NEW!)
+- AI-powered plant disease identification
+- Real-time image analysis via camera/upload
+- Detailed treatment recommendations (organic, chemical, IPM, cultural)
+- Field outbreak tracking and management
+- Disease history per field stored in black box
+- Confidence scoring and recovery predictions
+
+### 📊 Yield Prediction
+- ML-based crop yield forecasting
+- Historical data analysis
+- Weather integration
+
+### 🎯 Key Capabilities
+- Offline-first architecture with localStorage
+- Audio narration for accessibility
+- Mobile-optimized responsive design
+- Black box data logging for analytics
+- PDF report generation
+- WhatsApp sharing integration
 
 ## How can I edit this code?
 

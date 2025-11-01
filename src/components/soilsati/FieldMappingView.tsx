@@ -5,8 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { WalkBoundaryMap } from "./mapping/WalkBoundaryMap";
-import { DrawOnMap } from "./mapping/DrawOnMap";
-import { CenterRadiusMap } from "./mapping/CenterRadiusMap";
+import { GoogleMapsFieldMapping } from "./mapping/GoogleMapsFieldMapping";
 import { FieldDetailsForm } from "./mapping/FieldDetailsForm";
 
 export const FieldMappingView = () => {
@@ -23,8 +22,78 @@ export const FieldMappingView = () => {
   };
 
   const handleSaveField = (fieldData: any) => {
-    console.log("Field saved:", { ...fieldData, coordinates, area });
-    // TODO: Save to database
+    // Generate unique field ID (without "field_" prefix since we add it when storing)
+    const fieldId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const completeFieldData = {
+      id: fieldId,
+      ...fieldData,
+      coordinates,
+      area,
+      createdAt: new Date().toISOString(),
+      health: {
+        ndvi: 0,
+        status: "unknown"
+      }
+    };
+    
+    console.log("Saving field:", completeFieldData);
+    
+    // Save to localStorage
+    try {
+      // Save field data with field_ prefix
+      localStorage.setItem(`field_${fieldId}_data`, JSON.stringify(completeFieldData));
+      
+      // Update fields list
+      const existingFields = JSON.parse(localStorage.getItem('fields_list') || '[]');
+      existingFields.push({
+        id: fieldId,
+        name: fieldData.name,
+        cropType: fieldData.cropType,
+        area: area,
+        sowingDate: fieldData.sowingDate,
+        createdAt: completeFieldData.createdAt,
+        health: {
+          ndvi: 0,
+          status: "unknown"
+        }
+      });
+      localStorage.setItem('fields_list', JSON.stringify(existingFields));
+      
+      console.log('Field saved to localStorage successfully:', fieldId);
+      console.log('Fields list:', existingFields);
+      
+      // 🔥 LOG TO BLACKBOX
+      import('@/lib/blackBoxService').then(({ blackBoxService }) => {
+        blackBoxService.logUserInteraction(
+          'field_creation',
+          'field_mapping_complete',
+          fieldId,
+          {
+            fieldName: fieldData.name,
+            cropType: fieldData.cropType,
+            area: area,
+            mappingMethod: activeTab,
+            coordinatesCount: coordinates?.length || 0,
+            timestamp: new Date().toISOString()
+          }
+        );
+      });
+      
+    } catch (error) {
+      console.error('Failed to save field:', error);
+      
+      // 🔥 LOG ERROR TO BLACKBOX
+      import('@/lib/blackBoxService').then(({ blackBoxService }) => {
+        blackBoxService.logError(
+          'storage_error',
+          error instanceof Error ? error.message : 'Unknown error',
+          fieldId,
+          'field_save_operation'
+        );
+      });
+    }
+    
     navigate("/soilsati");
   };
 
@@ -52,17 +121,16 @@ export const FieldMappingView = () => {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
-        <h1 className="text-2xl font-bold mb-1">Map Your Field</h1>
-        <p className="text-sm opacity-90">Choose a mapping method below</p>
+        <h1 className="text-2xl font-bold mb-1">🛰️ Map Your Field</h1>
+        <p className="text-sm opacity-90">Powered by Google Earth Engine satellite imagery</p>
       </header>
 
       {/* Mapping Methods */}
       <div className="px-6 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="walk">🚶 Walk</TabsTrigger>
-            <TabsTrigger value="draw">✏️ Draw</TabsTrigger>
-            <TabsTrigger value="radius">📍 Radius</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="walk">🚶 Walk Boundary</TabsTrigger>
+            <TabsTrigger value="satellite">🛰️ Satellite Mapping</TabsTrigger>
           </TabsList>
 
           <TabsContent value="walk" className="mt-0">
@@ -81,36 +149,20 @@ export const FieldMappingView = () => {
             <WalkBoundaryMap onComplete={handleMappingComplete} />
           </TabsContent>
 
-          <TabsContent value="draw" className="mt-0">
+          <TabsContent value="satellite" className="mt-0">
             <Card className="p-4 bg-card shadow-soft mb-4">
-              <h3 className="font-semibold text-foreground mb-2">Draw on Map Method</h3>
+              <h3 className="font-semibold text-foreground mb-2">🛰️ Satellite Mapping with Google Earth Engine</h3>
               <p className="text-sm text-muted-foreground mb-3">
-                Draw your field boundary directly on the interactive map.
+                Use high-resolution satellite imagery to precisely map your field boundaries.
               </p>
               <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                <li>Search or navigate to your field location</li>
-                <li>Tap to add corner points of your field</li>
-                <li>Double-tap the last point to complete the polygon</li>
-                <li>Area will be calculated automatically</li>
+                <li>Choose between drawing boundary points or center+radius method</li>
+                <li>Use real satellite imagery to see your actual field</li>
+                <li>Switch between satellite and map views</li>
+                <li>Precise area calculation using Google Earth Engine</li>
               </ul>
             </Card>
-            <DrawOnMap onComplete={handleMappingComplete} />
-          </TabsContent>
-
-          <TabsContent value="radius" className="mt-0">
-            <Card className="p-4 bg-card shadow-soft mb-4">
-              <h3 className="font-semibold text-foreground mb-2">Center + Radius Method</h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                Mark the center of your field and specify the radius.
-              </p>
-              <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                <li>Tap on map to mark the center of your field</li>
-                <li>Enter the radius in meters using the slider</li>
-                <li>A circular boundary will be created</li>
-                <li>Adjust radius until it matches your field</li>
-              </ul>
-            </Card>
-            <CenterRadiusMap onComplete={handleMappingComplete} />
+            <GoogleMapsFieldMapping onComplete={handleMappingComplete} />
           </TabsContent>
         </Tabs>
       </div>

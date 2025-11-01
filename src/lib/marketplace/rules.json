@@ -1,0 +1,259 @@
+[
+  {
+    "rule_id": "npk_nitrogen_high",
+    "rule_name": "High Nitrogen Deficiency → Urea",
+    "enabled": true,
+    "conditions": {
+      "npk_deficiency": {
+        "nutrient": "nitrogen",
+        "min_severity": "high",
+        "max_level": 50
+      }
+    },
+    "product_mapping": {
+      "product_id": "fert_urea_001",
+      "priority": "immediate",
+      "urgency_base_score": 95,
+      "confidence_multiplier": 1.0,
+      "reason_template": "N at {level}% (high deficiency)"
+    }
+  },
+  {
+    "rule_id": "npk_nitrogen_medium",
+    "rule_name": "Medium Nitrogen Deficiency → Urea",
+    "enabled": true,
+    "conditions": {
+      "npk_deficiency": {
+        "nutrient": "nitrogen",
+        "min_severity": "medium",
+        "min_level": 40,
+        "max_level": 60
+      }
+    },
+    "product_mapping": {
+      "product_id": "fert_urea_001",
+      "priority": "preventive",
+      "urgency_base_score": 70,
+      "confidence_multiplier": 0.9,
+      "reason_template": "N at {level}% (medium deficiency)"
+    }
+  },
+  {
+    "rule_id": "npk_phosphorus_high",
+    "rule_name": "High Phosphorus Deficiency → DAP",
+    "enabled": true,
+    "conditions": {
+      "npk_deficiency": {
+        "nutrient": "phosphorus",
+        "min_severity": "high",
+        "max_level": 50
+      }
+    },
+    "product_mapping": {
+      "product_id": "fert_dap_001",
+      "priority": "immediate",
+      "urgency_base_score": 92,
+      "confidence_multiplier": 1.0,
+      "reason_template": "P at {level}% (high deficiency)"
+    }
+  },
+  {
+    "rule_id": "npk_phosphorus_medium",
+    "rule_name": "Medium Phosphorus Deficiency → SSP",
+    "enabled": true,
+    "conditions": {
+      "npk_deficiency": {
+        "nutrient": "phosphorus",
+        "min_severity": "medium",
+        "min_level": 40,
+        "max_level": 60
+      }
+    },
+    "product_mapping": {
+      "product_id": "fert_ssp_001",
+      "priority": "preventive",
+      "urgency_base_score": 68,
+      "confidence_multiplier": 0.85,
+      "reason_template": "P at {level}% (medium deficiency)"
+    }
+  },
+  {
+    "rule_id": "npk_potassium_high",
+    "rule_name": "High Potassium Deficiency → MOP",
+    "enabled": true,
+    "conditions": {
+      "npk_deficiency": {
+        "nutrient": "potassium",
+        "min_severity": "high",
+        "max_level": 50
+      }
+    },
+    "product_mapping": {
+      "product_id": "fert_mop_001",
+      "priority": "immediate",
+      "urgency_base_score": 90,
+      "confidence_multiplier": 1.0,
+      "reason_template": "K at {level}% (high deficiency)"
+    }
+  },
+  {
+    "rule_id": "disease_blast_recent",
+    "rule_name": "Recent Rice Blast → Propiconazole",
+    "enabled": true,
+    "conditions": {
+      "disease_type": ["Rice Blast", "Blast"],
+      "crop_types": ["rice"]
+    },
+    "product_mapping": {
+      "product_id": "fung_propi_001",
+      "priority": "immediate",
+      "urgency_base_score": 90,
+      "confidence_multiplier": 0.95,
+      "reason_template": "Blast detected {days} days ago"
+    }
+  },
+  {
+    "rule_id": "disease_bacterial_blight",
+    "rule_name": "Bacterial Blight → Copper Oxychloride",
+    "enabled": true,
+    "conditions": {
+      "disease_type": ["Bacterial Blight", "Blight"]
+    },
+    "product_mapping": {
+      "product_id": "fung_copper_001",
+      "priority": "immediate",
+      "urgency_base_score": 88,
+      "confidence_multiplier": 0.9,
+      "reason_template": "{disease} detected - apply copper fungicide"
+    }
+  },
+  {
+    "rule_id": "disease_brown_spot",
+    "rule_name": "Brown Spot → Mancozeb",
+    "enabled": true,
+    "conditions": {
+      "disease_type": ["Brown Spot", "Leaf Spot"]
+    },
+    "product_mapping": {
+      "product_id": "fung_mancozeb_001",
+      "priority": "immediate",
+      "urgency_base_score": 85,
+      "confidence_multiplier": 0.9,
+      "reason_template": "{disease} detected - preventive spray needed"
+    }
+  },
+  {
+    "rule_id": "weather_heavy_rain_fungicide",
+    "rule_name": "Heavy Rain Expected → Preventive Fungicide",
+    "enabled": true,
+    "conditions": {
+      "weather_condition": ["heavy_rain"]
+    },
+    "product_mapping": {
+      "product_id": "fung_mancozeb_001",
+      "priority": "preventive",
+      "urgency_base_score": 75,
+      "confidence_multiplier": 0.85,
+      "reason_template": "Heavy rain in {days} days - fungal risk"
+    }
+  },
+  {
+    "rule_id": "weather_drought_drip",
+    "rule_name": "Drought Conditions → Drip Irrigation",
+    "enabled": true,
+    "conditions": {
+      "weather_condition": ["drought"]
+    },
+    "product_mapping": {
+      "product_id": "equip_drip_001",
+      "priority": "immediate",
+      "urgency_base_score": 85,
+      "confidence_multiplier": 0.9,
+      "reason_template": "Drought expected in {days} days"
+    }
+  },
+  {
+    "rule_id": "growth_reproductive_potash",
+    "rule_name": "Reproductive Stage → Potash Application",
+    "enabled": true,
+    "conditions": {
+      "growth_stage_range": {
+        "min": 60,
+        "max": 75
+      },
+      "crop_types": ["rice"]
+    },
+    "product_mapping": {
+      "product_id": "fert_mop_001",
+      "priority": "immediate",
+      "urgency_base_score": 80,
+      "confidence_multiplier": 0.95,
+      "reason_template": "Flowering stage - K critical for grain filling"
+    }
+  },
+  {
+    "rule_id": "growth_maturity_harvest",
+    "rule_name": "Maturity Stage → Harvest Equipment",
+    "enabled": true,
+    "conditions": {
+      "growth_stage_range": {
+        "min": 85,
+        "max": 100
+      }
+    },
+    "product_mapping": {
+      "product_id": "equip_tarp_001",
+      "priority": "seasonal",
+      "urgency_base_score": 50,
+      "confidence_multiplier": 0.8,
+      "reason_template": "Harvest in {harvest_days} days"
+    }
+  },
+  {
+    "rule_id": "pest_stem_borer",
+    "rule_name": "Stem Borer Control → Chlorpyrifos",
+    "enabled": true,
+    "conditions": {
+      "disease_type": ["Stem Borer", "Leaf Folder"],
+      "crop_types": ["rice"]
+    },
+    "product_mapping": {
+      "product_id": "pest_chlor_001",
+      "priority": "immediate",
+      "urgency_base_score": 87,
+      "confidence_multiplier": 0.9,
+      "reason_template": "Pest infestation detected - immediate control needed"
+    }
+  },
+  {
+    "rule_id": "organic_pest_control",
+    "rule_name": "Organic Pest Control → Neem Oil",
+    "enabled": true,
+    "conditions": {
+      "disease_type": ["Aphids", "Whitefly", "Thrips"]
+    },
+    "product_mapping": {
+      "product_id": "pest_neem_001",
+      "priority": "preventive",
+      "urgency_base_score": 65,
+      "confidence_multiplier": 0.8,
+      "reason_template": "Minor pest detected - organic solution"
+    }
+  },
+  {
+    "rule_id": "seed_treatment_monsoon",
+    "rule_name": "Monsoon Season → Seed Treatment",
+    "enabled": true,
+    "conditions": {
+      "weather_condition": ["heavy_rain"],
+      "regions": ["PB", "HR", "UP", "WB"]
+    },
+    "product_mapping": {
+      "product_id": "seed_treat_001",
+      "priority": "preventive",
+      "urgency_base_score": 70,
+      "confidence_multiplier": 0.85,
+      "reason_template": "Monsoon approaching - protect seeds from fungal attack"
+    }
+  }
+]

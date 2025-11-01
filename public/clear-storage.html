@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Storage Utility</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #2563eb; }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover { background: #1d4ed8; }
+        button.danger { background: #dc2626; }
+        button.danger:hover { background: #b91c1c; }
+        .info {
+            background: #eff6ff;
+            border-left: 4px solid #2563eb;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .warning {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        #output {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Storage Management Utility</h1>
+        
+        <div class="info">
+            <strong>ℹ️ Info:</strong> This utility helps manage localStorage for Plant Saathi application.
+        </div>
+
+        <h2>Actions</h2>
+        <button onclick="checkUsage()">📊 Check Storage Usage</button>
+        <button onclick="clearBlackBox()">🗑️ Clear Black Box Data</button>
+        <button class="danger" onclick="clearAll()">⚠️ Clear All Storage</button>
+        <button onclick="goBack()">← Back to App</button>
+
+        <div id="output"></div>
+    </div>
+
+    <script>
+        const output = document.getElementById('output');
+
+        function log(message) {
+            output.textContent += message + '\n';
+        }
+
+        function clearOutput() {
+            output.textContent = '';
+        }
+
+        function checkUsage() {
+            clearOutput();
+            log('📊 Checking Storage Usage...\n');
+
+            let totalSize = 0;
+            const keys = Object.keys(localStorage);
+            
+            keys.forEach(key => {
+                const item = localStorage.getItem(key);
+                if (item) {
+                    totalSize += item.length;
+                }
+            });
+            
+            const sizeInKB = (totalSize / 1024).toFixed(2);
+            const sizeInMB = (totalSize / (1024 * 1024)).toFixed(2);
+            const estimatedLimit = 5 * 1024 * 1024;
+            const percentage = ((totalSize / estimatedLimit) * 100).toFixed(1);
+            
+            log(`Total Size: ${sizeInKB} KB (${sizeInMB} MB)`);
+            log(`Percentage: ${percentage}% of ~5MB limit`);
+            log(`Total Keys: ${keys.length}\n`);
+            
+            // Black box specific
+            const blackboxKeys = keys.filter(key => key.startsWith('blackbox_'));
+            let blackboxSize = 0;
+            blackboxKeys.forEach(key => {
+                const item = localStorage.getItem(key);
+                if (item) {
+                    blackboxSize += item.length;
+                }
+            });
+            
+            const blackboxKB = (blackboxSize / 1024).toFixed(2);
+            log(`📝 Black Box Data:`);
+            log(`  Keys: ${blackboxKeys.length}`);
+            log(`  Size: ${blackboxKB} KB\n`);
+
+            if (percentage > 80) {
+                log('⚠️ WARNING: Storage is over 80% full!');
+                log('Consider clearing black box data.');
+            } else {
+                log('✅ Storage usage is healthy.');
+            }
+        }
+
+        function clearBlackBox() {
+            clearOutput();
+            log('🗑️ Clearing Black Box Data...\n');
+
+            const keys = Object.keys(localStorage).filter(key => key.startsWith('blackbox_'));
+            log(`Found ${keys.length} black box storage keys\n`);
+            
+            keys.forEach(key => {
+                localStorage.removeItem(key);
+            });
+            
+            log('✅ Black box storage cleared!');
+            log('\nRefresh the app to start fresh.');
+        }
+
+        function clearAll() {
+            if (confirm('⚠️ This will clear ALL localStorage data. Continue?')) {
+                clearOutput();
+                log('⚠️ Clearing ALL Storage...\n');
+                
+                const count = Object.keys(localStorage).length;
+                localStorage.clear();
+                
+                log(`✅ Cleared ${count} items from storage.`);
+                log('\nRefresh the app to start fresh.');
+            }
+        }
+
+        function goBack() {
+            window.location.href = '/';
+        }
+
+        // Auto-check on load
+        window.onload = () => {
+            checkUsage();
+        };
+    </script>
+</body>
+</html>

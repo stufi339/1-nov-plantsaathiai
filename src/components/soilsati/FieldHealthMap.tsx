@@ -66,15 +66,15 @@ export const FieldHealthMap = ({ quadrants, playAudio, playingAudio }: FieldHeal
       </p>
 
       {/* Grid visualization of quadrants */}
-      <div className="grid grid-cols-2 gap-2 mb-4 aspect-square">
+      <div className="grid grid-cols-2 gap-2 mb-4" style={{ maxHeight: '200px' }}>
         {quadrants.map((quadrant) => (
           <div
             key={quadrant.id}
-            className={`${getQuadrantColor(quadrant.status)} rounded-lg p-4 flex flex-col items-center justify-center text-white relative`}
+            className={`${getQuadrantColor(quadrant.status)} rounded-lg p-3 flex flex-col items-center justify-center text-white relative min-h-[90px]`}
           >
-            <p className="text-xs font-medium mb-2">{quadrant.name}</p>
-            <p className="text-2xl font-bold">{quadrant.ndvi.toFixed(2)}</p>
-            <Badge className="mt-2 bg-white/20 text-white text-xs">
+            <p className="text-xs font-medium mb-1">{quadrant.name}</p>
+            <p className="text-xl font-bold">{quadrant.ndvi.toFixed(2)}</p>
+            <Badge className="mt-1 bg-white/20 text-white text-[10px] px-1 py-0">
               {getQuadrantLabel(quadrant.status).split(' ')[1]}
             </Badge>
           </div>
@@ -82,26 +82,26 @@ export const FieldHealthMap = ({ quadrants, playAudio, playingAudio }: FieldHeal
       </div>
 
       {/* Quadrant details */}
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {quadrants.map((quadrant) => (
-          <div key={quadrant.id} className="flex items-center justify-between p-2 bg-muted/30 rounded">
+          <div key={quadrant.id} className="flex items-center justify-between p-2 bg-muted/30 rounded text-xs">
             <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${getQuadrantColor(quadrant.status)}`} />
-              <span className="text-sm font-medium">{quadrant.name}</span>
+              <div className={`w-2 h-2 rounded-full ${getQuadrantColor(quadrant.status)}`} />
+              <span className="font-medium">{quadrant.name}</span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">NDVI: {quadrant.ndvi.toFixed(2)}</span>
-              <Badge className={getQuadrantColor(quadrant.status).replace('/80', '')} variant="outline">
-                {getQuadrantLabel(quadrant.status)}
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">NDVI: {quadrant.ndvi.toFixed(2)}</span>
+              <Badge className={`${getQuadrantColor(quadrant.status).replace('/80', '')} text-[10px] px-1.5 py-0`} variant="outline">
+                {getQuadrantLabel(quadrant.status).split(' ')[1]}
               </Badge>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="mt-4 p-3 bg-info/10 rounded">
-        <p className="text-xs font-medium text-foreground mb-1">💡 What this means:</p>
-        <p className="text-xs text-muted-foreground">
+      <div className="mt-3 p-2 bg-info/10 rounded">
+        <p className="text-[10px] font-medium text-foreground mb-0.5">💡 What this means:</p>
+        <p className="text-[10px] text-muted-foreground leading-tight">
           {quadrants.some(q => q.status === "stress") 
             ? "⚠️ Some zones need immediate attention. Focus on the red/yellow areas for irrigation or pest control."
             : quadrants.some(q => q.status === "monitor")
