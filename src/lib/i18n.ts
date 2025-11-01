@@ -59,8 +59,8 @@ i18n
       caches: ['localStorage'],
     },
 
-    // Set default language to Hindi to match SIH requirement
-    lng: localStorage.getItem('i18nextLng') || 'hi',
+    // Set default language to English
+    lng: localStorage.getItem('i18nextLng') || 'en',
 
     // React options
     react: {
