@@ -19,6 +19,7 @@ import Weather from "./pages/Weather";
 import Profile from "./pages/Profile";
 import { AISettingsPage } from "./pages/AISettingsPage";
 import Auth from "./pages/Auth";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 import TestRunner from "./test-runner";
 import { MobileOptimizedFieldDashboard } from "./components/soilsati/MobileOptimizedFieldDashboard";
@@ -57,6 +58,7 @@ const App = () => {
             <Routes>
               {/* Public routes */}
               <Route path="/auth" element={<Auth />} />
+              <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
               
               {/* Protected routes */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
