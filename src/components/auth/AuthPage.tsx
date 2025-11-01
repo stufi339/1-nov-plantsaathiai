@@ -41,9 +41,9 @@ export default function AuthPage() {
             } else {
                 toast({
                     title: 'Success!',
-                    description: 'Account created. Please check your email to verify.',
+                    description: 'Account created! Let\'s set up your profile.',
                 });
-                navigate('/dashboard');
+                navigate('/onboarding');
             }
         } catch (error: any) {
             toast({
