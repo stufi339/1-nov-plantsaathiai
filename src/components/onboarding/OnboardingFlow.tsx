@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Leaf, Globe, MapPin, CheckCircle } from 'lucide-react';
-import { useLanguage } from '@/hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { supabaseFieldService } from '@/lib/supabaseFieldService';
 import { supabaseAuthService } from '@/lib/supabaseAuthService';
 import { useToast } from '@/hooks/use-toast';
@@ -28,7 +28,7 @@ const CROP_TYPES = [
 
 export default function OnboardingFlow() {
     const navigate = useNavigate();
-    const { changeLanguage } = useLanguage();
+    const { i18n } = useTranslation();
     const { toast } = useToast();
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
@@ -43,7 +43,8 @@ export default function OnboardingFlow() {
     const [area, setArea] = useState('');
 
     const handleLanguageSelect = async () => {
-        changeLanguage(selectedLanguage);
+        // Change language using i18next
+        await i18n.changeLanguage(selectedLanguage);
         
         // Save language preference to profile
         await supabaseAuthService.updateProfile({ language: selectedLanguage });
