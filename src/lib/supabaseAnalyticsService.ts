@@ -90,26 +90,21 @@ export const supabaseAnalyticsService = {
    */
   async syncBlackBoxData() {
     try {
-      // Get BlackBox analytics
-      const blackBoxData = blackBoxService.getAnalytics();
+      // Get BlackBox analytics summary
+      const blackBoxData = blackBoxService.getAnalyticsSummary();
       
-      if (!blackBoxData || !blackBoxData.userInteractions) return;
+      if (!blackBoxData) return;
 
-      // Batch insert to Supabase
-      const events = blackBoxData.userInteractions.map((event: any) => ({
-        event_type: event.interactionType,
-        event_data: event.metadata || {},
-        created_at: event.timestamp
-      }));
+      // Log summary as a single event
+      const { error } = await supabase
+        .from('analytics_events')
+        .insert([{
+          event_type: 'blackbox_sync',
+          event_data: blackBoxData
+        }]);
 
-      if (events.length > 0) {
-        const { error } = await supabase
-          .from('analytics_events')
-          .insert(events);
-
-        if (error) {
-          console.error('Batch sync error:', error);
-        }
+      if (error) {
+        console.error('Batch sync error:', error);
       }
     } catch (error) {
       console.error('BlackBox sync error:', error);
