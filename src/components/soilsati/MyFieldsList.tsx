@@ -59,7 +59,7 @@ export const MyFieldsList = () => {
         
         // 🔥 LOG FIELDS LOADED
         import('@/lib/blackBoxService').then(({ blackBoxService }) => {
-          blackBoxService.logUserInteraction('data_load', 'fields_list_loaded', undefined, {
+          blackBoxService.logUserInteraction('page_view', 'fields_list_loaded', undefined, {
             fieldCount: updatedFields.length,
             timestamp: new Date().toISOString()
           });
@@ -146,7 +146,7 @@ export const MyFieldsList = () => {
               onClick={() => {
                 // 🔥 LOG FIELD CLICK
                 import('@/lib/blackBoxService').then(({ blackBoxService }) => {
-                  blackBoxService.logUserInteraction('field_click', 'field_card_click', field.id, {
+                  blackBoxService.logUserInteraction('button_click', 'field_card_click', field.id, {
                     fieldName: field.name,
                     cropType: field.cropType,
                     healthStatus: field.health?.status,
