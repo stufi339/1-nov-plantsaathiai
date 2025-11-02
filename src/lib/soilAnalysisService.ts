@@ -112,9 +112,8 @@ export class SoilAnalysisService {
    * Perform comprehensive soil analysis for polygon coordinates
    */
   static async analyzePolygon(polygonCoords: PolygonCoordinates): Promise<ComprehensiveSoilAnalysis> {
-    // Reduced logging to prevent console spam
-    // console.log('🌍 Starting comprehensive soil analysis for polygon...');
-    // console.log(`📍 Analyzing ${polygonCoords.points.length} coordinate points`);
+    console.log('🌍 Starting comprehensive soil analysis for polygon...');
+    console.log(`📍 Analyzing ${polygonCoords.points.length} coordinate points`);
     
     // Calculate polygon properties
     const location = this.calculatePolygonProperties(polygonCoords);
@@ -122,11 +121,36 @@ export class SoilAnalysisService {
     // Get environmental data for the location
     const environmental = await this.getEnvironmentalData(location.center);
     
-    // Calculate all vegetation indices
+    // Calculate all vegetation indices with real environmental data
+    let dataSource = 'Enhanced Satellite Analysis with Real Weather Data';
+    let dataQuality = 0.85;
+    let confidenceLevel = 0.82;
+    
     const vegetationIndices = await this.calculateAllVegetationIndices(
       location.center,
       environmental
     );
+    
+    // Check if we successfully got enhanced data
+    try {
+      const { satelliteDataService } = await import('./satelliteDataService');
+      const testData = await satelliteDataService.getComprehensiveFieldData({
+        lat: location.center.lat,
+        lng: location.center.lng
+      });
+      
+      dataSource = testData.dataSource;
+      dataQuality = testData.confidence;
+      confidenceLevel = testData.confidence;
+      
+      console.log('✅ Data source:', dataSource);
+      console.log('📊 Confidence:', confidenceLevel);
+    } catch (error) {
+      console.log('⚠️ Using basic simulation data');
+      dataSource = 'Basic Simulation (Fallback)';
+      dataQuality = 0.70;
+      confidenceLevel = 0.65;
+    }
     
     // Analyze soil properties
     const soilProperties = await this.analyzeSoilProperties(
@@ -151,11 +175,11 @@ export class SoilAnalysisService {
     // Generate metadata
     const metadata = {
       analysis_date: new Date().toISOString(),
-      satellite_source: 'Sentinel-2 + Environmental Data',
-      data_quality: 0.92,
+      satellite_source: dataSource,
+      data_quality: dataQuality,
       cloud_cover_percent: environmental.cloud_cover,
       images_used: 8,
-      confidence_level: 0.89
+      confidence_level: confidenceLevel
     };
     
     return {
@@ -226,54 +250,101 @@ export class SoilAnalysisService {
   }
 
   /**
-   * Calculate ALL vegetation indices
+   * Calculate ALL vegetation indices using REAL environmental data
    */
   private static async calculateAllVegetationIndices(
     center: { lat: number; lng: number },
     environmental: any
   ) {
-    // Base calculations using environmental factors
-    const seasonalFactor = 0.85; // Late October, post-monsoon
-    const temperatureFactor = environmental.temperature >= 20 && environmental.temperature <= 30 ? 1.0 : 0.9;
-    const humidityFactor = environmental.humidity >= 60 && environmental.humidity <= 80 ? 1.0 : 0.95;
-    
-    // Base NDVI calculation
-    const baseNDVI = 0.72 + (Math.random() * 0.1 - 0.05);
-    
-    // Calculate all indices
-    const ndvi = this.clamp(baseNDVI * temperatureFactor, 0, 1);
-    const msavi2 = this.clamp(ndvi * 0.92, 0, 1);
-    const ndre = this.clamp(ndvi * 0.85, 0, 1);
-    const ndwi = this.clamp((environmental.humidity / 100) * 0.6, -1, 1);
-    const ndmi = this.clamp((environmental.humidity / 100) * 0.7, -1, 1);
-    const soc_vis = this.clamp(0.45 + (Math.random() * 0.1 - 0.05), -1, 1);
-    const rsm = this.clamp((environmental.humidity / 100) * 0.8, -1, 1);
-    const rvi = this.clamp(1.5 + ndvi * 5, 1, 15);
-    const evi = this.clamp(2.5 * ((ndvi - 0.2) / (ndvi + 6 * 0.2 - 7.5 * 0.1 + 1)), -1, 1);
-    const savi = this.clamp(((ndvi - 0.2) / (ndvi + 0.2 + 0.5)) * 1.5, -1, 1);
-    
-    return {
-      ndvi,
-      ndvi_status: this.getStatus(ndvi, 'ndvi'),
-      msavi2,
-      msavi2_status: this.getStatus(msavi2, 'msavi2'),
-      ndre,
-      ndre_status: this.getStatus(ndre, 'ndre'),
-      ndwi,
-      ndwi_status: this.getStatus(ndwi, 'ndwi'),
-      ndmi,
-      ndmi_status: this.getStatus(ndmi, 'ndmi'),
-      soc_vis,
-      soc_vis_status: this.getStatus(soc_vis, 'soc_vis'),
-      rsm,
-      rsm_status: this.getStatus(rsm, 'rsm'),
-      rvi,
-      rvi_status: this.getStatus(rvi, 'rvi'),
-      evi,
-      evi_status: this.getStatus(evi, 'evi'),
-      savi,
-      savi_status: this.getStatus(savi, 'savi')
-    };
+    try {
+      // Use enhanced satellite data service with REAL weather data
+      console.log('🛰️ Fetching satellite data with REAL environmental factors...');
+      
+      const { satelliteDataService } = await import('./satelliteDataService');
+      
+      // Get comprehensive field data with real weather
+      const comprehensiveData = await satelliteDataService.getComprehensiveFieldData({
+        lat: center.lat,
+        lng: center.lng
+      });
+      
+      console.log('✅ Successfully fetched data from:', comprehensiveData.dataSource);
+      console.log('📊 Data confidence:', comprehensiveData.confidence);
+      
+      // Use the enhanced vegetation data
+      const vegetationData = comprehensiveData.vegetation;
+      
+      // Calculate EVI and SAVI from NDVI
+      const evi = this.clamp(2.5 * ((vegetationData.ndvi - 0.2) / (vegetationData.ndvi + 6 * 0.2 - 7.5 * 0.1 + 1)), -1, 1);
+      const savi = this.clamp(((vegetationData.ndvi - 0.2) / (vegetationData.ndvi + 0.2 + 0.5)) * 1.5, -1, 1);
+      
+      return {
+        ndvi: vegetationData.ndvi,
+        ndvi_status: this.getStatus(vegetationData.ndvi, 'ndvi'),
+        msavi2: vegetationData.msavi2,
+        msavi2_status: this.getStatus(vegetationData.msavi2, 'msavi2'),
+        ndre: vegetationData.ndre,
+        ndre_status: this.getStatus(vegetationData.ndre, 'ndre'),
+        ndwi: vegetationData.ndwi,
+        ndwi_status: this.getStatus(vegetationData.ndwi, 'ndwi'),
+        ndmi: vegetationData.ndmi,
+        ndmi_status: this.getStatus(vegetationData.ndmi, 'ndmi'),
+        soc_vis: vegetationData.soc_vis,
+        soc_vis_status: this.getStatus(vegetationData.soc_vis, 'soc_vis'),
+        rsm: vegetationData.rsm,
+        rsm_status: this.getStatus(vegetationData.rsm, 'rsm'),
+        rvi: vegetationData.rvi,
+        rvi_status: this.getStatus(vegetationData.rvi, 'rvi'),
+        evi,
+        evi_status: this.getStatus(evi, 'evi'),
+        savi,
+        savi_status: this.getStatus(savi, 'savi')
+      };
+      
+    } catch (error) {
+      console.error('❌ Failed to fetch enhanced data, using basic simulation:', error);
+      
+      // Fallback to basic simulated data
+      const seasonalFactor = 0.85;
+      const temperatureFactor = environmental.temperature >= 20 && environmental.temperature <= 30 ? 1.0 : 0.9;
+      const humidityFactor = environmental.humidity >= 60 && environmental.humidity <= 80 ? 1.0 : 0.95;
+      
+      const baseNDVI = 0.72 + (Math.random() * 0.1 - 0.05);
+      
+      const ndvi = this.clamp(baseNDVI * temperatureFactor, 0, 1);
+      const msavi2 = this.clamp(ndvi * 0.92, 0, 1);
+      const ndre = this.clamp(ndvi * 0.85, 0, 1);
+      const ndwi = this.clamp((environmental.humidity / 100) * 0.6, -1, 1);
+      const ndmi = this.clamp((environmental.humidity / 100) * 0.7, -1, 1);
+      const soc_vis = this.clamp(0.45 + (Math.random() * 0.1 - 0.05), -1, 1);
+      const rsm = this.clamp((environmental.humidity / 100) * 0.8, -1, 1);
+      const rvi = this.clamp(1.5 + ndvi * 5, 1, 15);
+      const evi = this.clamp(2.5 * ((ndvi - 0.2) / (ndvi + 6 * 0.2 - 7.5 * 0.1 + 1)), -1, 1);
+      const savi = this.clamp(((ndvi - 0.2) / (ndvi + 0.2 + 0.5)) * 1.5, -1, 1);
+      
+      return {
+        ndvi,
+        ndvi_status: this.getStatus(ndvi, 'ndvi'),
+        msavi2,
+        msavi2_status: this.getStatus(msavi2, 'msavi2'),
+        ndre,
+        ndre_status: this.getStatus(ndre, 'ndre'),
+        ndwi,
+        ndwi_status: this.getStatus(ndwi, 'ndwi'),
+        ndmi,
+        ndmi_status: this.getStatus(ndmi, 'ndmi'),
+        soc_vis,
+        soc_vis_status: this.getStatus(soc_vis, 'soc_vis'),
+        rsm,
+        rsm_status: this.getStatus(rsm, 'rsm'),
+        rvi,
+        rvi_status: this.getStatus(rvi, 'rvi'),
+        evi,
+        evi_status: this.getStatus(evi, 'evi'),
+        savi,
+        savi_status: this.getStatus(savi, 'savi')
+      };
+    }
   }
 
   /**

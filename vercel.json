@@ -22,8 +22,8 @@
     }
   ],
   "env": {
-    "VITE_GEMINI_API_KEY": "@gemini_api_key",
-    "VITE_SUPABASE_URL": "@supabase_url",
-    "VITE_SUPABASE_ANON_KEY": "@supabase_anon_key"
+    "VITE_GEMINI_API_KEY": "AIzaSyCjjaEuaQMiQxgkUQLlZmGfZEOxRonx9vQ",
+    "VITE_SUPABASE_URL": "https://oislgcwardyvphznqoku.supabase.co",
+    "VITE_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pc2xnY3dhcmR5dnBoem5xb2t1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwMDQ1NTgsImV4cCI6MjA3NzU4MDU1OH0.hJCvKI8Qs4tAkWBa4xKakmQs90xrhdRDQ6MkStiAzKA"
   }
 }

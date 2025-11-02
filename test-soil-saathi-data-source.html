@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soil Saathi Data Source Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .test-section h2 {
+            color: #444;
+            margin-top: 0;
+            font-size: 18px;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        .result pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 13px;
+            color: #333;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .status.real {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.mock {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .info-box strong {
+            color: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛰️ Soil Saathi Data Source Verification</h1>
+        <p class="subtitle">Testing whether Soil Saathi uses real or mock satellite data</p>
+
+        <div class="info-box">
+            <strong>📍 Test Location:</strong> Delhi, India (28.368717°N, 77.540933°E)<br>
+            <strong>🎯 Purpose:</strong> Verify if the app fetches real environmental data or uses mock data
+        </div>
+
+        <div class="test-section">
+            <h2>Test 1: Satellite Data Service</h2>
+            <button onclick="testSatelliteDataService()" id="btn1">Run Test</button>
+            <div id="result1"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 2: Soil Analysis Service</h2>
+            <button onclick="testSoilAnalysisService()" id="btn2">Run Test</button>
+            <div id="result2"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 3: Compare Multiple Runs</h2>
+            <button onclick="testMultipleRuns()" id="btn3">Run Test (3 times)</button>
+            <div id="result3"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Test coordinates (Delhi area)
+        const testCoords = {
+            lat: 28.368717,
+            lng: 77.540933
+        };
+
+        window.testSatelliteDataService = async function() {
+            const btn = document.getElementById('btn1');
+            const resultDiv = document.getElementById('result1');
+            
+            btn.disabled = true;
+            resultDiv.innerHTML = '<div class="loading"></div> Fetching data...';
+            
+            try {
+                // Import the satellite data service
+                const module = await import('http://localhost:8085/src/lib/satelliteDataService.ts');
+                const satelliteDataService = module.satelliteDataService;
+                
+                console.log('🛰️ Testing Satellite Data Service...');
+                const data = await satelliteDataService.getComprehensiveFieldData(testCoords);
+                
+                const isReal = data.dataSource.includes('Weather') || data.dataSource.includes('NASA');
+                const statusClass = isReal ? 'real' : 'mock';
+                const statusText = isReal ? 'REAL DATA' : 'MOCK DATA';
+                
+                resultDiv.innerHTML = `
+                    <div class="result">
+                        <strong>Data Source:</strong> <span class="status ${statusClass}">${statusText}</span>
+                        <pre>${JSON.stringify({
+                            dataSource: data.dataSource,
+                            confidence: data.confidence,
+                            weather: data.weather,
+                            vegetation: {
+                                ndvi: data.vegetation.ndvi.toFixed(3),
+                                msavi2: data.vegetation.msavi2.toFixed(3),
+                                ndwi: data.vegetation.ndwi.toFixed(3)
+                            },
+                            lastUpdated: data.lastUpdated
+                        }, null, 2)}</pre>
+                    </div>
+                `;
+                
+                console.log('✅ Test 1 Complete:', data);
+            } catch (error) {
+                console.error('❌ Test 1 Failed:', error);
+                resultDiv.innerHTML = `
+                    <div class="result">
+                        <strong>Status:</strong> <span class="status error">ERROR</span>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+            }
+        };
+
+        window.testSoilAnalysisService = async function() {
+            const btn = document.getElementById('btn2');
+            const resultDiv = document.getElementById('result2');
+            
+            btn.disabled = true;
+            resultDiv.innerHTML = '<div class="loading"></div> Analyzing soil...';
+            
+            try {
+                // Import the soil analysis service
+                const module = await import('http://localhost:8085/src/lib/soilAnalysisService.ts');
+                const SoilAnalysisService = module.SoilAnalysisService;
+                
+                console.log('🌍 Testing Soil Analysis Service...');
+                
+                // Create a small polygon around the test point
+                const polygon = {
+                    points: [
+                        [testCoords.lat, testCoords.lng],
+                        [testCoords.lat + 0.001, testCoords.lng],
+                        [testCoords.lat + 0.001, testCoords.lng + 0.001],
+                        [testCoords.lat, testCoords.lng + 0.001]
+                    ]
+                };
+                
+                const analysis = await SoilAnalysisService.analyzePolygon(polygon);
+                
+                const isReal = analysis.metadata.satellite_source.includes('Weather') || 
+                              analysis.metadata.satellite_source.includes('NASA') ||
+                              analysis.metadata.satellite_source.includes('Multi-source');
+                const statusClass = isReal ? 'real' : 'mock';
+                const statusText = isReal ? 'REAL DATA' : 'MOCK DATA';
+                
+                resultDiv.innerHTML = `
+                    <div class="result">
+                        <strong>Data Source:</strong> <span class="status ${statusClass}">${statusText}</span>
+                        <pre>${JSON.stringify({
+                            satellite_source: analysis.metadata.satellite_source,
+                            data_quality: analysis.metadata.data_quality,
+                            confidence_level: analysis.metadata.confidence_level,
+                            vegetation_indices: {
+                                ndvi: analysis.vegetation_indices.ndvi.toFixed(3),
+                                ndvi_status: analysis.vegetation_indices.ndvi_status,
+                                msavi2: analysis.vegetation_indices.msavi2.toFixed(3),
+                                ndwi: analysis.vegetation_indices.ndwi.toFixed(3)
+                            },
+                            environmental: analysis.environmental,
+                            analysis_date: analysis.metadata.analysis_date
+                        }, null, 2)}</pre>
+                    </div>
+                `;
+                
+                console.log('✅ Test 2 Complete:', analysis);
+            } catch (error) {
+                console.error('❌ Test 2 Failed:', error);
+                resultDiv.innerHTML = `
+                    <div class="result">
+                        <strong>Status:</strong> <span class="status error">ERROR</span>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+            }
+        };
+
+        window.testMultipleRuns = async function() {
+            const btn = document.getElementById('btn3');
+            const resultDiv = document.getElementById('result3');
+            
+            btn.disabled = true;
+            resultDiv.innerHTML = '<div class="loading"></div> Running 3 tests...';
+            
+            try {
+                const module = await import('http://localhost:8085/src/lib/satelliteDataService.ts');
+                const satelliteDataService = module.satelliteDataService;
+                
+                console.log('🔄 Running multiple tests to check for randomness...');
+                
+                const results = [];
+                for (let i = 0; i < 3; i++) {
+                    const data = await satelliteDataService.getComprehensiveFieldData(testCoords);
+                    results.push({
+                        run: i + 1,
+                        ndvi: data.vegetation.ndvi.toFixed(4),
+                        temperature: data.weather.temperature.toFixed(1),
+                        humidity: data.weather.humidity.toFixed(0),
+                        dataSource: data.dataSource
+                    });
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
+                // Check if values are identical (real data) or different (random mock data)
+                const ndviValues = results.map(r => r.ndvi);
+                const allSame = ndviValues.every(v => v === ndviValues[0]);
+                
+                const statusClass = allSame ? 'mock' : 'real';
+                const statusText = allSame ? 'LIKELY MOCK (identical values)' : 'LIKELY REAL (varying values)';
+                
+                resultDiv.innerHTML = `
+                    <div class="result">
+                        <strong>Analysis:</strong> <span class="status ${statusClass}">${statusText}</span>
+                        <pre>${JSON.stringify(results, null, 2)}</pre>
+                        <p style="margin-top: 10px; color: #666; font-size: 13px;">
+                            ${allSame ? 
+                                '⚠️ All NDVI values are identical, suggesting mock data with fixed values.' : 
+                                '✅ NDVI values vary slightly, suggesting real environmental data with natural variation.'}
+                        </p>
+                    </div>
+                `;
+                
+                console.log('✅ Test 3 Complete:', results);
+            } catch (error) {
+                console.error('❌ Test 3 Failed:', error);
+                resultDiv.innerHTML = `
+                    <div class="result">
+                        <strong>Status:</strong> <span class="status error">ERROR</span>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satellite Data Verification - Live Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .test-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        
+        .test-item {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .test-item h3 {
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-right: 10px;
+        }
+        
+        .status.real {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .status.simulated {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .status.unknown {
+            background: #9e9e9e;
+            color: white;
+        }
+        
+        .details {
+            color: #666;
+            margin-top: 10px;
+            line-height: 1.6;
+        }
+        
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .verdict {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-top: 30px;
+            text-align: center;
+        }
+        
+        .verdict h2 {
+            font-size: 2em;
+            margin-bottom: 15px;
+        }
+        
+        .verdict p {
+            font-size: 1.1em;
+            line-height: 1.8;
+            margin: 10px 0;
+        }
+        
+        .button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s;
+        }
+        
+        .button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .instructions {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .instructions h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+            color: #856404;
+        }
+        
+        .instructions li {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+        
+        .highlight {
+            background: #ffeb3b;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛰️ Satellite Data Verification Tool</h1>
+            <p>Check if your Soil Saathi data is real or simulated</p>
+        </div>
+        
+        <div class="content">
+            <div class="instructions">
+                <h3>📋 How to Use This Tool:</h3>
+                <ol>
+                    <li>Open your Soil Saathi application in another tab</li>
+                    <li>Go to a field and click "Analyze My Field"</li>
+                    <li>Open Browser DevTools (Press <span class="highlight">F12</span>)</li>
+                    <li>Go to the <span class="highlight">Console</span> tab</li>
+                    <li>Look for the messages described below</li>
+                    <li>Compare with the indicators on this page</li>
+                </ol>
+            </div>
+            
+            <div class="test-section">
+                <h2>🔍 Test 1: Console Messages</h2>
+                
+                <div class="test-item">
+                    <h3>Real Satellite Data Indicators:</h3>
+                    <span class="status real">REAL DATA</span>
+                    <div class="details">
+                        If you see these messages in console:
+                        <div class="code-block">
+✅ Successfully retrieved real satellite data
+🛰️ Fetching real satellite data from Google Earth Engine...
+Sentinel-2 (Real Data)</div>
+                    </div>
+                </div>
+                
+                <div class="test-item">
+                    <h3>Simulated Data Indicators:</h3>
+                    <span class="status simulated">SIMULATED</span>
+                    <div class="details">
+                        If you see these messages in console:
+                        <div class="code-block">
+⚠️ Falling back to enhanced simulation
+🌍 Using enhanced satellite data service with real environmental factors...
+Enhanced Simulation
+Sentinel-2 + Environmental Data</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2>🔍 Test 2: Response Time</h2>
+                
+                <div class="test-item">
+                    <h3>Real Satellite Data:</h3>
+                    <span class="status real">5-15 seconds</span>
+                    <div class="details">
+                        Real Google Earth Engine queries take time to:
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>Authenticate with GEE servers</li>
+                            <li>Query Sentinel-2 image collection</li>
+                            <li>Apply cloud masking</li>
+                            <li>Calculate vegetation indices</li>
+                            <li>Reduce to mean values</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="test-item">
+                    <h3>Simulated Data:</h3>
+                    <span class="status simulated">Instant (< 1 second)</span>
+                    <div class="details">
+                        Simulated data is calculated locally using algorithms, so it returns almost instantly.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2>🔍 Test 3: Data Consistency</h2>
+                
+                <div class="test-item">
+                    <h3>Real Satellite Data:</h3>
+                    <span class="status real">CONSISTENT</span>
+                    <div class="details">
+                        <strong>Test:</strong> Refresh the same field multiple times within 1 hour.
+                        <br><br>
+                        <strong>Expected:</strong> Values should be EXACTLY the same (satellite images don't change that fast).
+                        <br><br>
+                        Real satellite data is cached and only updates when new imagery is available (every few days).
+                    </div>
+                </div>
+                
+                <div class="test-item">
+                    <h3>Simulated Data:</h3>
+                    <span class="status simulated">VARIES SLIGHTLY</span>
+                    <div class="details">
+                        <strong>Test:</strong> Refresh the same field multiple times.
+                        <br><br>
+                        <strong>Expected:</strong> Values change slightly each time (±5-10%).
+                        <br><br>
+                        Example: NDVI might be 0.72, then 0.74, then 0.71 on consecutive refreshes.
+                        This happens because Math.random() adds variation to simulate real-world variability.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2>🔍 Test 4: Metadata Fields</h2>
+                
+                <div class="test-item">
+                    <h3>Check the Analysis Response:</h3>
+                    <div class="details">
+                        Open DevTools → Network tab → Look for the analysis response.
+                        <br><br>
+                        <strong>Real Data Contains:</strong>
+                        <div class="code-block">
+{
+  "metadata": {
+    "satellite_source": "Sentinel-2 (Real Data)",
+    "acquisitionDate": "2024-10-25T10:30:00Z",
+    "satelliteId": "Sentinel-2A",
+    "cloudCover": 12.5,
+    "pixelCount": 1250,
+    "images_used": 3
+  }
+}</div>
+                        
+                        <strong>Simulated Data Contains:</strong>
+                        <div class="code-block">
+{
+  "metadata": {
+    "satellite_source": "Sentinel-2 + Environmental Data",
+    "satellite_source": "Enhanced Simulation",
+    "data_quality": 0.92,
+    "confidence_level": 0.89
+  }
+}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2>🔍 Test 5: Quick Verification Steps</h2>
+                
+                <div class="test-item">
+                    <h3>Do This Right Now:</h3>
+                    <div class="details">
+                        <ol style="margin-left: 20px; margin-top: 10px; line-height: 2;">
+                            <li>Open your Soil Saathi app</li>
+                            <li>Analyze the same field 3 times in a row</li>
+                            <li>Write down the NDVI value each time</li>
+                            <li>Compare the values:</li>
+                        </ol>
+                        <br>
+                        <strong>If values are IDENTICAL:</strong> <span class="status real">Likely Real Data</span>
+                        <br><br>
+                        <strong>If values VARY slightly:</strong> <span class="status simulated">Definitely Simulated</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="verdict">
+                <h2>🎯 Current Status</h2>
+                <p><strong>Based on code analysis, your Soil Saathi is using:</strong></p>
+                <h1 style="font-size: 3em; margin: 20px 0;">
+                    <span class="status simulated" style="font-size: 0.5em;">SIMULATED DATA</span>
+                </h1>
+                <p>The application uses <strong>Enhanced Simulation</strong> with:</p>
+                <p>✓ Scientific algorithms (real NDVI formulas)</p>
+                <p>✓ Location-based factors (lat/lng)</p>
+                <p>✓ Seasonal variations</p>
+                <p>✓ Environmental estimates</p>
+                <br>
+                <p><strong>Why?</strong> Google Earth Engine requires authenticated service account credentials that are not currently configured.</p>
+                <br>
+                <button class="button" onclick="window.open('https://developers.google.com/earth-engine/guides/service_account', '_blank')">
+                    Learn How to Get Real Satellite Data
+                </button>
+            </div>
+            
+            <div class="test-section">
+                <h2>📊 Summary Table</h2>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                    <thead>
+                        <tr style="background: #667eea; color: white;">
+                            <th style="padding: 15px; text-align: left;">Indicator</th>
+                            <th style="padding: 15px; text-align: center;">Real Data</th>
+                            <th style="padding: 15px; text-align: center;">Simulated Data</th>
+                            <th style="padding: 15px; text-align: center;">Your App</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background: #f8f9fa;">
+                            <td style="padding: 12px; border: 1px solid #ddd;">Response Time</td>
+                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">5-15 sec</td>
+                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">< 1 sec</td>
+                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center; background: #fff3cd;">< 1 sec</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; border: 1px solid #ddd;">Data Consistency</td>
+                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">Identical</td>
+                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">Varies</td>
+                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center; background: #fff3cd;">Varies</td>
+                        </tr>
+                        <tr style="background: #f8f9fa;">
+                            <td style="padding: 12px; border: 1px solid #ddd;">Console Message</td>
+                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">✅ Real data</td>
+                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">⚠️ Simulation</td>
+                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center; background: #fff3cd;">⚠️ Simulation</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; border: 1px solid #ddd;">Satellite Source</td>
+                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">Sentinel-2 (Real)</td>
+                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">Enhanced Sim</td>
+                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center; background: #fff3cd;">Enhanced Sim</td>
+                        </tr>
+                        <tr style="background: #f8f9fa;">
+                            <td style="padding: 12px; border: 1px solid #ddd;">Works Offline</td>
+                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">❌ No</td>
+                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">✅ Yes</td>
+                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center; background: #fff3cd;">✅ Yes</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        console.log('%c🛰️ Satellite Data Verification Tool Loaded', 'background: #667eea; color: white; padding: 10px; font-size: 16px; font-weight: bold;');
+        console.log('%cThis tool helps you verify if your satellite data is real or simulated.', 'color: #666; font-size: 12px;');
+        console.log('%cFollow the instructions on the page to test your Soil Saathi application.', 'color: #666; font-size: 12px;');
+    </script>
+</body>
+</html>

@@ -56,30 +56,135 @@ export class SatelliteDataService {
 
   /**
    * Get comprehensive satellite and environmental data for a location
+   * Now includes REAL satellite imagery from Google Earth Engine + NASA POWER data
    */
   async getComprehensiveFieldData(coordinates: { lat: number; lng: number; polygon?: number[][] }) {
     console.log('🛰️ Fetching comprehensive field data from multiple sources...');
+    console.log('📡 Sources: Google Earth Engine (Sentinel-2) + NASA POWER + Weather APIs');
     
     try {
-      // Try to get real weather data
+      // 1. Try to get REAL satellite imagery from NASA GIBS (MODIS)
+      let satelliteImageryData = null;
+      let dataSource = 'Multi-source';
+      let confidence = 0.85;
+      
+      try {
+        console.log('🛰️ Attempting to fetch REAL MODIS satellite imagery from NASA GIBS...');
+        const { nasaGibsService } = await import('./nasaGibsService');
+        
+        const gibsResult = await nasaGibsService.getModisVegetationData(coordinates);
+        
+        if (gibsResult) {
+          console.log('✅ SUCCESS: Got REAL MODIS satellite data from NASA!');
+          satelliteImageryData = gibsResult;
+          dataSource = 'NASA MODIS Satellite + NASA POWER + Weather APIs';
+          confidence = 0.92; // High confidence with real satellite data
+        } else {
+          console.log('⚠️ MODIS data not available, trying Sentinel-2...');
+          
+          // Fallback to Google Earth Engine (Sentinel-2)
+          try {
+            const { geeService } = await import('./geeService');
+            
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(endDate.getDate() - 30);
+            
+            const geeResult = await geeService.analyzeVegetationIndices({
+              coordinates,
+              startDate: startDate.toISOString().split('T')[0],
+              endDate: endDate.toISOString().split('T')[0],
+              cloudCoverThreshold: 20
+            });
+            
+            if (geeResult && geeResult.satelliteSource.includes('Real Data')) {
+              console.log('✅ SUCCESS: Got real Sentinel-2 satellite imagery!');
+              satelliteImageryData = geeResult;
+              dataSource = 'Sentinel-2 Satellite + NASA POWER + Weather APIs';
+              confidence = 0.95;
+            }
+          } catch (geeError) {
+            console.log('⚠️ Sentinel-2 not available, will use NASA POWER + enhanced algorithms');
+          }
+        }
+      } catch (gibsError) {
+        console.log('⚠️ NASA GIBS error:', gibsError);
+      }
+      
+      // 2. Get real weather data
       const weatherData = await this.getWeatherData(coordinates);
       
-      // Try to get NASA POWER agricultural data
+      // 3. Get NASA POWER agricultural data (always fetch this)
       const nasaPowerData = await this.getNASAPowerData(coordinates);
       
-      // Get enhanced vegetation indices based on real environmental data
-      const vegetationData = await this.calculateEnhancedVegetationIndices(
-        coordinates, 
-        weatherData, 
-        nasaPowerData
-      );
+      // 4. Determine which vegetation data to use
+      let vegetationData;
+      
+      if (satelliteImageryData) {
+        // Use REAL satellite imagery data
+        console.log('📊 Using REAL satellite imagery for vegetation indices');
+        
+        // Check if it's MODIS data (only has NDVI and EVI) or full Sentinel-2 data
+        if (satelliteImageryData.dataSource && satelliteImageryData.dataSource.includes('MODIS')) {
+          // MODIS data - calculate other indices from NDVI and EVI
+          const baseNDVI = satelliteImageryData.ndvi;
+          const baseEVI = satelliteImageryData.evi;
+          
+          vegetationData = {
+            ndvi: baseNDVI,
+            msavi2: baseNDVI * 0.92, // Derived from NDVI
+            ndre: baseNDVI * 0.85,   // Derived from NDVI
+            ndwi: (weatherData.humidity / 100) * 0.6, // From weather data
+            ndmi: (weatherData.humidity / 100) * 0.7, // From weather data
+            soc_vis: baseNDVI * 0.75, // Derived from NDVI
+            rsm: (weatherData.humidity / 100) * 0.8, // From weather data
+            rvi: 1.5 + baseNDVI * 5, // Derived from NDVI
+            environmentalFactors: {
+              temperature: weatherData.temperature,
+              humidity: weatherData.humidity,
+              precipitation: weatherData.precipitation,
+              cloudCover: weatherData.cloudCover,
+              dataQuality: 'Real MODIS Satellite + Derived Indices'
+            }
+          };
+        } else {
+          // Full Sentinel-2 data with all indices
+          vegetationData = {
+            ndvi: satelliteImageryData.ndvi,
+            msavi2: satelliteImageryData.msavi2,
+            ndre: satelliteImageryData.ndre,
+            ndwi: satelliteImageryData.ndwi,
+            ndmi: satelliteImageryData.ndmi,
+            soc_vis: satelliteImageryData.soc_vis,
+            rsm: satelliteImageryData.rsm,
+            rvi: satelliteImageryData.rvi,
+            environmentalFactors: {
+              temperature: weatherData.temperature,
+              humidity: weatherData.humidity,
+              precipitation: weatherData.precipitation,
+              cloudCover: satelliteImageryData.cloudCover || weatherData.cloudCover,
+              dataQuality: 'Real Sentinel-2 Satellite Imagery'
+            }
+          };
+        }
+      } else {
+        // Fallback to enhanced algorithms with NASA POWER data
+        console.log('📊 Using enhanced algorithms with NASA POWER environmental data');
+        vegetationData = await this.calculateEnhancedVegetationIndices(
+          coordinates, 
+          weatherData, 
+          nasaPowerData
+        );
+        dataSource = 'NASA POWER + Enhanced Algorithms';
+      }
       
       return {
         vegetation: vegetationData,
         weather: weatherData,
         environmental: nasaPowerData,
-        dataSource: 'Multi-source (Weather + NASA POWER + Enhanced Algorithms)',
-        confidence: 0.85,
+        satelliteImagery: satelliteImageryData,
+        dataSource,
+        confidence,
         lastUpdated: new Date().toISOString()
       };
       

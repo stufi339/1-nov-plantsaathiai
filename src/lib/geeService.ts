@@ -1,7 +1,9 @@
 /**
  * Google Earth Engine Service for Real Vegetation Indices Analysis
- * Uses Google Earth Engine Apps Script API for satellite data analysis
+ * Uses Google Earth Engine REST API with proper OAuth2 authentication
  */
+
+import { geeAuthService } from './geeAuthService';
 
 interface FieldCoordinates {
   lat: number;
@@ -35,13 +37,12 @@ interface GEEAnalysisParams {
 }
 
 export class GEEService {
-  private apiKey: string;
-  private geeAppUrl: string;
+  private projectId: string;
+  private geeBaseUrl: string;
 
   constructor() {
-    this.apiKey = 'AIzaSyBZlJtstGEj9wCMP5_O5PaGytIi-iForN0';
-    // Using Google Earth Engine REST API
-    this.geeAppUrl = 'https://earthengine.googleapis.com/v1alpha';
+    this.projectId = import.meta.env.VITE_GEE_PROJECT_ID || '';
+    this.geeBaseUrl = 'https://earthengine.googleapis.com/v1';
   }
 
   /**
@@ -74,19 +75,28 @@ export class GEEService {
    */
   private async fetchRealSatelliteData(params: GEEAnalysisParams): Promise<VegetationIndicesResult | null> {
     try {
+      // Check if authentication is configured
+      if (!geeAuthService.isConfigured()) {
+        console.log('GEE authentication not configured, falling back to simulation');
+        return null;
+      }
+
+      // Get access token
+      const accessToken = await geeAuthService.getAccessToken();
+
       // Create the area of interest (AOI) from coordinates
       const aoi = this.createAOIFromCoordinates(params.coordinates);
-      
+
       // Prepare the Earth Engine computation request
       const eeRequest = {
-        expression: this.buildEarthEngineExpression(aoi, params.startDate, params.endDate),
-        fileFormat: 'JSON'
+        expression: this.buildEarthEngineExpression(aoi, params.startDate, params.endDate)
       };
 
-      // Make request to Google Earth Engine
-      const response = await fetch(`https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?key=${this.apiKey}`, {
+      // Make request to Google Earth Engine REST API
+      const response = await fetch(`${this.geeBaseUrl}/projects/${this.projectId}:computeValue`, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(eeRequest)
@@ -94,15 +104,17 @@ export class GEEService {
 
       if (!response.ok) {
         console.log(`GEE API returned ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        console.log('GEE Error details:', errorText);
         return null;
       }
 
       const result = await response.json();
-      
-      if (result && result.result) {
-        return this.processRealSatelliteData(result.result, params.coordinates);
+
+      if (result) {
+        return this.processRealSatelliteData(result, params.coordinates);
       }
-      
+
       return null;
 
     } catch (error) {
