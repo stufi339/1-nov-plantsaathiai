@@ -21,11 +21,13 @@ import {
   Eye,
   Gauge,
   Sprout,
+  ArrowLeft,
 } from "lucide-react";
 import { weatherService, WeatherData } from "@/lib/weatherService";
 import { useTranslation } from "react-i18next";
 import { blackBoxService } from "@/lib/blackBoxService";
 import { JalSaathiView } from "./JalSaathiView";
+import { useNavigate } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -45,6 +47,7 @@ interface Field {
 
 export const WeatherView = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -280,8 +283,18 @@ export const WeatherView = () => {
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <div className="bg-gradient-to-br from-green-600 to-green-700 text-white p-6">
-        <h1 className="text-2xl font-bold mb-2">🌤️ Weather & Irrigation</h1>
-        <p className="text-green-50 text-sm">
+        <div className="flex items-center gap-3 mb-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(-1)}
+            className="text-white hover:bg-white/20 -ml-2"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">🌤️ Weather & Irrigation</h1>
+        </div>
+        <p className="text-green-50 text-sm ml-11">
           Weather forecasts and smart irrigation scheduling for your farm
         </p>
       </div>
@@ -458,60 +471,89 @@ export const WeatherView = () => {
               </CardContent>
             </Card>
 
-            {/* 5-Day Forecast and Farming Advice */}
-            <div className="grid md:grid-cols-2 gap-4">
-              {/* 5-Day Forecast */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Cloud className="h-5 w-5" />
-                    5-Day Forecast
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {weatherData.forecast.map((day, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="w-20">
-                          <p className="font-medium">{day.day}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {getWeatherIcon(day.icon)}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-xs text-muted-foreground">Precipitation</p>
-                          <p className="font-medium">{day.precipitation}%</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold">
-                          {day.temp_max}° <span className="text-muted-foreground">{day.temp_min}°</span>
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+            {/* Extended Forecast and Farming Advice */}
+            <div className="space-y-4">
+              {/* Forecast Days Info Badge */}
+              <div className="flex items-center justify-between">
+                <Badge variant="outline" className="text-sm">
+                  {weatherData.forecast.length === 5 ? (
+                    <>📊 5-Day Forecast (Free Tier)</>
+                  ) : (
+                    <>🌟 {weatherData.forecast.length}-Day Extended Forecast</>
+                  )}
+                </Badge>
+                {weatherData.forecast.length === 5 && (
+                  <p className="text-xs text-muted-foreground">
+                    Upgrade to Pro for 16-day forecast
+                  </p>
+                )}
+              </div>
 
-              {/* Farming Advice */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2 text-green-600">
-                    🌾 Farming Advice
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {weatherData.farmingAdvice.map((advice, index) => (
-                    <div key={index} className="flex items-start gap-2 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                      <div className="w-2 h-2 bg-green-600 rounded-full mt-2"></div>
-                      <p className="text-sm flex-1">{advice}</p>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Extended Forecast */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Cloud className="h-5 w-5" />
+                      Weather Forecast
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 max-h-[600px] overflow-y-auto">
+                    {weatherData.forecast.map((day, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="w-24">
+                            <p className="font-medium">{day.day}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {getWeatherIcon(day.icon)}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-muted-foreground">Rain</p>
+                            <p className="font-medium">{day.precipitation}%</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">
+                            {day.temp_max}° <span className="text-muted-foreground">{day.temp_min}°</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground capitalize">{day.description}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                {/* Farming Advice */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2 text-green-600">
+                      🌾 Farming Advice
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 max-h-[600px] overflow-y-auto">
+                    {weatherData.farmingAdvice.length > 0 ? (
+                      weatherData.farmingAdvice.map((advice, index) => (
+                        <div key={index} className="flex items-start gap-2 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                          <div className="w-2 h-2 bg-green-600 rounded-full mt-2 flex-shrink-0"></div>
+                          <p className="text-sm flex-1">{advice}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Sprout className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                        <p className="text-sm">No specific advice for current conditions</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </div>
 
             {/* Additional Weather Details */}

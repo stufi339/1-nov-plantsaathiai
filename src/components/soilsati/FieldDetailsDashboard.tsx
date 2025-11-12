@@ -38,13 +38,47 @@ export const FieldDetailsDashboard = () => {
     timeRemaining: null 
   });
 
-  // Load field data from localStorage and check cache
+  // Load field data from Supabase and check cache
   useEffect(() => {
     if (fieldId) {
-      try {
-        const storedField = localStorage.getItem(`field_${fieldId}_data`);
-        if (storedField) {
-          const parsedField = JSON.parse(storedField);
+      const loadFieldData = async () => {
+        try {
+          // First try localStorage for backward compatibility
+          const storedField = localStorage.getItem(`field_${fieldId}_data`);
+          let parsedField = null;
+          
+          if (storedField) {
+            parsedField = JSON.parse(storedField);
+          } else {
+            // Load from Supabase
+            const { supabaseFieldService } = await import('@/lib/supabaseFieldService');
+            const fields = await supabaseFieldService.getFields();
+            parsedField = fields.find(f => f.id === fieldId);
+            
+            if (!parsedField) {
+              console.error('Field not found in Supabase:', fieldId);
+              toast({
+                title: "Field not found",
+                description: "The requested field could not be loaded.",
+                variant: "destructive"
+              });
+              navigate('/soilsati');
+              return;
+            }
+            
+            // Convert Supabase field format to component format
+            parsedField = {
+              id: parsedField.id,
+              name: parsedField.name,
+              cropType: parsedField.crop_type,
+              variety: parsedField.variety || "Standard",
+              area: parsedField.area || 0,
+              sowingDate: parsedField.sowing_date,
+              coordinates: parsedField.coordinates || [],
+              irrigationMethod: parsedField.irrigation_method || "Not specified"
+            };
+          }
+          
           console.log('Loaded field data:', parsedField);
           
           // Calculate center coordinates from polygon
@@ -95,23 +129,17 @@ export const FieldDetailsDashboard = () => {
             health,
             quadrants
           });
-        } else {
-          console.error('Field not found:', fieldId);
+        } catch (error) {
+          console.error('Error loading field:', error);
           toast({
-            title: "Field not found",
-            description: "The requested field could not be loaded.",
+            title: "Error loading field",
+            description: "Failed to load field data.",
             variant: "destructive"
           });
-          navigate('/soilsati');
         }
-      } catch (error) {
-        console.error('Error loading field:', error);
-        toast({
-          title: "Error loading field",
-          description: "Failed to load field data.",
-          variant: "destructive"
-        });
-      }
+      };
+      
+      loadFieldData();
     }
   }, [fieldId, navigate, toast]);
 
@@ -509,6 +537,14 @@ export const FieldDetailsDashboard = () => {
 
       {/* Action Buttons */}
       <div className="px-6 space-y-3">
+        <Button
+          onClick={() => navigate(`/crop-rotation/${fieldId}`)}
+          className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:opacity-90"
+        >
+          <TrendingUp className="w-4 h-4 mr-2" />
+          Smart Crop Rotation Planner
+        </Button>
+
         <Button
           onClick={() => navigate("/disease")}
           className="w-full bg-gradient-to-r from-destructive to-destructive/80 hover:opacity-90"

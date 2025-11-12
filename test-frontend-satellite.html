@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Frontend Satellite Connection</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background: #ecf0f1;
+        }
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+        .error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+        .loading {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .metric {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px 15px;
+            background: #3498db;
+            color: white;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛰️ Test Frontend → Backend Satellite Connection</h1>
+        
+        <p>This tests if your Plant Saathi frontend can connect to the backend proxy and get real Sentinel-2 satellite data.</p>
+        
+        <button onclick="testConnection()">Test Connection</button>
+        <button onclick="testRiceField()">Test Rice Field (India)</button>
+        <button onclick="testWheatField()">Test Wheat Field (Punjab)</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const PROXY_URL = 'http://localhost:3001';
+        
+        async function testConnection() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="result loading">⏳ Testing connection...</div>';
+            
+            try {
+                const response = await fetch(`${PROXY_URL}/health`);
+                const data = await response.json();
+                
+                if (data.status === 'ok' && data.eeInitialized) {
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            <h3>✅ Connection Successful!</h3>
+                            <p>Backend proxy is running and Earth Engine is initialized.</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <h3>⚠️ Connection Issue</h3>
+                            <p>Backend is running but Earth Engine may not be initialized.</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ Connection Failed</h3>
+                        <p>Could not connect to backend proxy at ${PROXY_URL}</p>
+                        <p>Error: ${error.message}</p>
+                        <p><strong>Make sure the backend proxy is running:</strong></p>
+                        <pre>cd backend-proxy
+npm start</pre>
+                    </div>
+                `;
+            }
+        }
+        
+        async function testSatelliteData(lat, lng, name) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<div class="result loading">⏳ Fetching real satellite data for ${name}...</div>`;
+            
+            const startTime = Date.now();
+            
+            try {
+                const response = await fetch(`${PROXY_URL}/api/satellite/vegetation`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lat,
+                        lng,
+                        startDate: '2024-10-01',
+                        endDate: '2024-11-01'
+                    })
+                });
+                
+                const elapsed = Date.now() - startTime;
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success && result.data.imageCount > 0) {
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            <h3>✅ Real Satellite Data Retrieved!</h3>
+                            <p><strong>Location:</strong> ${name} (${lat}, ${lng})</p>
+                            <p><strong>Response Time:</strong> ${elapsed}ms</p>
+                            <p><strong>Data Source:</strong> ${result.data.dataSource}</p>
+                            
+                            <h4>📊 Vegetation Indices:</h4>
+                            <div>
+                                <span class="metric">NDVI: ${result.data.ndvi?.toFixed(3)}</span>
+                                <span class="metric">MSAVI2: ${result.data.msavi2?.toFixed(3)}</span>
+                                <span class="metric">NDRE: ${result.data.ndre?.toFixed(3)}</span>
+                                <span class="metric">NDWI: ${result.data.ndwi?.toFixed(3)}</span>
+                            </div>
+                            <div>
+                                <span class="metric">NDMI: ${result.data.ndmi?.toFixed(3)}</span>
+                                <span class="metric">SOC_VIS: ${result.data.soc_vis?.toFixed(3)}</span>
+                                <span class="metric">RSM: ${result.data.rsm?.toFixed(3)}</span>
+                                <span class="metric">RVI: ${result.data.rvi?.toFixed(3)}</span>
+                            </div>
+                            
+                            <h4>📈 Quality Metrics:</h4>
+                            <p>
+                                <strong>Images Used:</strong> ${result.data.imageCount} | 
+                                <strong>Cloud Cover:</strong> ${result.data.cloudCover?.toFixed(1)}% | 
+                                <strong>Confidence:</strong> ${(result.data.confidence * 100).toFixed(0)}%
+                            </p>
+                            
+                            <details>
+                                <summary>View Full Response</summary>
+                                <pre>${JSON.stringify(result, null, 2)}</pre>
+                            </details>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <h3>⚠️ No Satellite Images Found</h3>
+                            <p>No Sentinel-2 images available for this location/date range.</p>
+                            <p>This could be due to:</p>
+                            <ul>
+                                <li>Heavy cloud cover during the period</li>
+                                <li>Location outside Sentinel-2 coverage</li>
+                                <li>Date range too narrow</li>
+                            </ul>
+                            <pre>${JSON.stringify(result, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ Error Fetching Satellite Data</h3>
+                        <p>Error: ${error.message}</p>
+                        <p>Make sure the backend proxy is running and accessible.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function testRiceField() {
+            testSatelliteData(28.368717, 77.540933, 'Rice Field, Haryana, India');
+        }
+        
+        function testWheatField() {
+            testSatelliteData(30.9010, 75.8573, 'Wheat Field, Punjab, India');
+        }
+        
+        // Auto-test on load
+        window.onload = () => {
+            testConnection();
+        };
+    </script>
+</body>
+</html>

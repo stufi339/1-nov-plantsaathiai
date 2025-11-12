@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sprout, Plus, TrendingUp, Droplets } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { supabaseFieldService } from "@/lib/supabaseFieldService";
 
 interface Field {
   id: string;
@@ -23,7 +24,7 @@ export const MyFieldsList = () => {
   const { t } = useTranslation();
   const [fields, setFields] = useState<Field[]>([]);
 
-  // Load fields from localStorage
+  // Load fields from Supabase
   useEffect(() => {
     // 🔥 LOG PAGE VIEW
     import('@/lib/blackBoxService').then(({ blackBoxService }) => {
@@ -32,29 +33,48 @@ export const MyFieldsList = () => {
       });
     });
     
-    const loadFields = () => {
+    const loadFields = async () => {
       try {
-        // Load fields list
-        const fieldsList = JSON.parse(localStorage.getItem('fields_list') || '[]');
+        // Load fields from Supabase
+        const fieldsList = await supabaseFieldService.getFields();
         
         // Update each field with latest health data from field_data
-        const updatedFields = fieldsList.map((field: Field) => {
-          try {
-            const fieldData = localStorage.getItem(`field_${field.id}_data`);
-            if (fieldData) {
-              const parsedData = JSON.parse(fieldData);
-              return {
-                ...field,
-                health: parsedData.health || field.health
-              };
+        const updatedFields = await Promise.all(
+          fieldsList.map(async (field: any) => {
+            try {
+              const latestData = await supabaseFieldService.getLatestFieldData(field.id);
+              if (latestData) {
+                // Calculate health status from health_score
+                let healthStatus: "healthy" | "monitor" | "stress" | "unknown" = "unknown";
+                const healthScore = latestData.health_score || 0;
+                if (healthScore > 0.7) healthStatus = "healthy";
+                else if (healthScore > 0.5) healthStatus = "monitor";
+                else if (healthScore > 0.3) healthStatus = "stress";
+                
+                return {
+                  ...field,
+                  cropType: field.crop_type,
+                  health: {
+                    ndvi: latestData.ndvi || 0,
+                    status: healthStatus
+                  }
+                };
+              }
+            } catch (error) {
+              console.error(`Failed to load data for field ${field.id}:`, error);
             }
-          } catch (error) {
-            console.error(`Failed to load data for field ${field.id}:`, error);
-          }
-          return field;
-        });
+            return {
+              ...field,
+              cropType: field.crop_type,
+              health: {
+                ndvi: 0,
+                status: "unknown" as const
+              }
+            };
+          })
+        );
         
-        console.log('Loaded fields from localStorage:', updatedFields);
+        console.log('Loaded fields from Supabase:', updatedFields);
         setFields(updatedFields);
         
         // 🔥 LOG FIELDS LOADED
@@ -169,14 +189,18 @@ export const MyFieldsList = () => {
               <div className="grid grid-cols-3 gap-3 mb-3">
                 <div className="text-center p-2 bg-muted/30 rounded">
                   <p className="text-xs text-muted-foreground mb-1">Area</p>
-                  <p className="text-sm font-semibold">{field.area.toFixed(2)} ha</p>
+                  <p className="text-sm font-semibold">
+                    {isNaN(field.area) || field.area === null ? '0.00' : Number(field.area).toFixed(2)} ha
+                  </p>
                 </div>
                 <div className="text-center p-2 bg-muted/30 rounded">
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <TrendingUp className="w-3 h-3 text-success" />
                     <p className="text-xs text-muted-foreground">NDVI</p>
                   </div>
-                  <p className="text-sm font-semibold">{(field.health?.ndvi || 0).toFixed(2)}</p>
+                  <p className="text-sm font-semibold">
+                    {isNaN(field.health?.ndvi) ? '0.00' : (field.health?.ndvi || 0).toFixed(2)}
+                  </p>
                 </div>
                 <div className="text-center p-2 bg-muted/30 rounded">
                   <div className="flex items-center justify-center gap-1 mb-1">
@@ -184,7 +208,10 @@ export const MyFieldsList = () => {
                     <p className="text-xs text-muted-foreground">Days</p>
                   </div>
                   <p className="text-sm font-semibold">
-                    {Math.floor((Date.now() - new Date(field.sowingDate).getTime()) / (1000 * 60 * 60 * 24))}
+                    {(() => {
+                      const days = Math.floor((Date.now() - new Date(field.sowingDate).getTime()) / (1000 * 60 * 60 * 24));
+                      return isNaN(days) ? '0' : days;
+                    })()}
                   </p>
                 </div>
               </div>

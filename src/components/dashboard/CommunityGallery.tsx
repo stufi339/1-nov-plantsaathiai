@@ -27,6 +27,86 @@ export const CommunityGallery = () => {
     loadLikedPosts();
   }, []);
 
+  const seedDefaultGallery = () => {
+    const defaultPosts: GalleryPost[] = [
+      {
+        id: "1",
+        imageUrl: "https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=800",
+        caption: "Golden harvest season in Punjab! 🌾",
+        captionHi: "पंजाब में सुनहरी फसल का मौसम! 🌾",
+        captionBn: "পাঞ্জাবে সোনালী ফসল কাটার মৌসুম! 🌾",
+        category: "harvest",
+        likes: 245,
+        comments: 18,
+        location: "Punjab",
+        addedAt: new Date().toISOString()
+      },
+      {
+        id: "2",
+        imageUrl: "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=800",
+        caption: "Healthy rice fields after using Plant Saathi recommendations",
+        captionHi: "प्लांट साथी की सिफारिशों का उपयोग करने के बाद स्वस्थ धान के खेत",
+        captionBn: "প্ল্যান্ট সাথী সুপারিশ ব্যবহারের পরে স্বাস্থ্যকর ধান ক্ষেত",
+        category: "farming",
+        likes: 189,
+        comments: 12,
+        location: "Haryana",
+        addedAt: new Date(Date.now() - 86400000).toISOString()
+      },
+      {
+        id: "3",
+        imageUrl: "https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=800",
+        caption: "Smart irrigation system in action 💧",
+        captionHi: "स्मार्ट सिंचाई प्रणाली कार्य में 💧",
+        captionBn: "স্মার্ট সেচ ব্যবস্থা কাজ করছে 💧",
+        category: "irrigation",
+        likes: 312,
+        comments: 24,
+        location: "Maharashtra",
+        addedAt: new Date(Date.now() - 172800000).toISOString()
+      },
+      {
+        id: "4",
+        imageUrl: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=800",
+        caption: "Organic farming success! 🌱",
+        captionHi: "जैविक खेती की सफलता! 🌱",
+        captionBn: "জৈব চাষের সাফল্য! 🌱",
+        category: "organic",
+        likes: 156,
+        comments: 9,
+        location: "Kerala",
+        addedAt: new Date(Date.now() - 259200000).toISOString()
+      },
+      {
+        id: "5",
+        imageUrl: "https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=800",
+        caption: "Beautiful sunset over the fields 🌅",
+        captionHi: "खेतों पर सुंदर सूर्यास्त 🌅",
+        captionBn: "মাঠের উপর সুন্দর সূর্যাস্ত 🌅",
+        category: "nature",
+        likes: 428,
+        comments: 31,
+        location: "Rajasthan",
+        addedAt: new Date(Date.now() - 345600000).toISOString()
+      },
+      {
+        id: "6",
+        imageUrl: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800",
+        caption: "Fresh vegetables from our farm 🥬",
+        captionHi: "हमारे खेत से ताजी सब्जियां 🥬",
+        captionBn: "আমাদের খামার থেকে তাজা সবজি 🥬",
+        category: "vegetables",
+        likes: 203,
+        comments: 15,
+        location: "Gujarat",
+        addedAt: new Date(Date.now() - 432000000).toISOString()
+      }
+    ];
+    
+    localStorage.setItem('community_gallery', JSON.stringify(defaultPosts));
+    setPosts(defaultPosts);
+  };
+
   const loadPosts = () => {
     try {
       const stored = localStorage.getItem('community_gallery');
@@ -36,9 +116,12 @@ export const CommunityGallery = () => {
           new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
         );
         setPosts(sorted.slice(0, 9)); // Show top 9 in 3x3 grid
+      } else {
+        seedDefaultGallery();
       }
     } catch (error) {
       console.error("Failed to load gallery:", error);
+      seedDefaultGallery();
     }
   };
 

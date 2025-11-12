@@ -25,6 +25,8 @@ import TestRunner from "./test-runner";
 import { MobileOptimizedFieldDashboard } from "./components/soilsati/MobileOptimizedFieldDashboard";
 import { AIAdvisorFAB } from "./components/layout/AIAdvisorFAB";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import CropRotation from "./pages/CropRotation";
+import { MandiPrices } from "./pages/MandiPrices";
 import { blackBoxService } from "@/lib/blackBoxService";
 import { supabaseAnalyticsService } from "@/lib/supabaseAnalyticsService";
 import { useEffect } from "react";
@@ -68,6 +70,7 @@ const App = () => {
               <Route path="/soilsati/map-field" element={<ProtectedRoute><FieldMapping /></ProtectedRoute>} />
               <Route path="/soilsati/field/:fieldId" element={<ProtectedRoute><FieldDetails /></ProtectedRoute>} />
               <Route path="/soilsati/field-mobile/:fieldId" element={<ProtectedRoute><MobileOptimizedFieldDashboard /></ProtectedRoute>} />
+              <Route path="/crop-rotation/:fieldId" element={<ProtectedRoute><CropRotation /></ProtectedRoute>} />
               <Route path="/disease" element={<ProtectedRoute><DiseaseDetection /></ProtectedRoute>} />
               <Route path="/marketplace" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
               <Route path="/marketplace/product/:productId" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
@@ -75,6 +78,7 @@ const App = () => {
               <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
               <Route path="/schemes" element={<ProtectedRoute><Schemes /></ProtectedRoute>} />
               <Route path="/weather" element={<ProtectedRoute><Weather /></ProtectedRoute>} />
+              <Route path="/mandi-prices" element={<ProtectedRoute><MandiPrices /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/settings/ai" element={<ProtectedRoute><AISettingsPage /></ProtectedRoute>} />
               <Route path="/test" element={<TestRunner />} />

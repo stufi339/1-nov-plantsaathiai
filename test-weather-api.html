@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Weather API</title>
+</head>
+<body>
+    <h1>Weather API Test</h1>
+    <button onclick="testWeather()">Test Weather for Dehradun</button>
+    <pre id="output"></pre>
+
+    <script>
+        const API_KEY = 'c1a7f0bdd3017863f8fd443972557632';
+        const BASE_URL = 'https://api.openweathermap.org/data/2.5';
+
+        async function testWeather() {
+            const output = document.getElementById('output');
+            output.textContent = 'Loading...';
+
+            try {
+                // Get forecast
+                const response = await fetch(
+                    `${BASE_URL}/forecast?q=Dehradun&appid=${API_KEY}&units=metric`
+                );
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                console.log('Full API Response:', data);
+                
+                // Group by day
+                const days = {};
+                data.list.forEach(item => {
+                    const date = new Date(item.dt * 1000);
+                    const dateKey = date.toISOString().split('T')[0];
+                    
+                    if (!days[dateKey]) {
+                        days[dateKey] = [];
+                    }
+                    days[dateKey].push({
+                        time: date.toLocaleTimeString(),
+                        temp: item.main.temp,
+                        pop: item.pop * 100,
+                        weather: item.weather[0].main
+                    });
+                });
+
+                output.textContent = JSON.stringify({
+                    totalItems: data.list.length,
+                    totalDays: Object.keys(days).length,
+                    days: days
+                }, null, 2);
+
+                console.log('Grouped by day:', days);
+            } catch (error) {
+                output.textContent = 'Error: ' + error.message;
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -28,8 +28,9 @@ export class SatelliteDataService {
   private apiKey: string;
   private dataSources: SatelliteDataSource[];
 
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
+  constructor(apiKey?: string) {
+    // Prefer environment-based key; fall back to provided or empty.
+    this.apiKey = import.meta.env.VITE_OPENWEATHER_API_KEY || apiKey || '';
     this.dataSources = [
       {
         name: 'NASA MODIS',
@@ -60,10 +61,83 @@ export class SatelliteDataService {
    */
   async getComprehensiveFieldData(coordinates: { lat: number; lng: number; polygon?: number[][] }) {
     console.log('🛰️ Fetching comprehensive field data from multiple sources...');
-    console.log('📡 Sources: Google Earth Engine (Sentinel-2) + NASA POWER + Weather APIs');
+    console.log('📡 Sources: Backend Proxy (Sentinel-2) → NASA GIBS (MODIS) → NASA POWER + Weather APIs');
     
     try {
-      // 1. Try to get REAL satellite imagery from NASA GIBS (MODIS)
+      // 1. Try backend proxy for REAL Sentinel-2 satellite data (BEST OPTION)
+      const backendProxyUrl = import.meta.env.VITE_SATELLITE_PROXY_URL;
+      
+      if (backendProxyUrl) {
+        try {
+          console.log('🛰️ Attempting to fetch REAL Sentinel-2 data from backend proxy...');
+          
+          const endDate = new Date();
+          const startDate = new Date();
+          startDate.setDate(endDate.getDate() - 30);
+          
+          const response = await fetch(`${backendProxyUrl}/api/satellite/vegetation`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              lat: coordinates.lat,
+              lng: coordinates.lng,
+              polygon: coordinates.polygon,
+              startDate: startDate.toISOString().split('T')[0],
+              endDate: endDate.toISOString().split('T')[0],
+              cloudCoverThreshold: 20
+            })
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            
+            if (result.success && result.data.imageCount > 0) {
+              console.log('✅ SUCCESS: Got REAL Sentinel-2 satellite data from backend proxy!');
+              console.log(`📊 Images used: ${result.data.imageCount}, Cloud cover: ${result.data.cloudCover}%`);
+              
+              // Get real weather data to complement satellite data
+              const weatherData = await this.getWeatherData(coordinates);
+              
+              return {
+                vegetation: {
+                  ndvi: result.data.ndvi,
+                  msavi2: result.data.msavi2,
+                  ndre: result.data.ndre,
+                  ndwi: result.data.ndwi,
+                  ndmi: result.data.ndmi,
+                  soc_vis: result.data.soc_vis,
+                  rsm: result.data.rsm,
+                  rvi: result.data.rvi,
+                  environmentalFactors: {
+                    temperature: weatherData.temperature,
+                    humidity: weatherData.humidity,
+                    precipitation: weatherData.precipitation,
+                    cloudCover: result.data.cloudCover,
+                    dataQuality: 'Real Sentinel-2 Satellite Imagery (10m resolution)'
+                  }
+                },
+                weather: weatherData,
+                satelliteImagery: result.data,
+                dataSource: 'Sentinel-2 Real Satellite (Backend Proxy)',
+                confidence: result.data.confidence,
+                lastUpdated: result.data.acquisitionDate
+              };
+            } else {
+              console.log('⚠️ No Sentinel-2 images available for this location/date range');
+              console.log('   Reason: Heavy cloud cover or location outside coverage');
+              console.log('   Falling back to alternative data sources...');
+            }
+          } else {
+            console.log(`⚠️ Backend proxy responded with status ${response.status}`);
+          }
+        } catch (proxyError) {
+          console.log('⚠️ Backend proxy not available:', proxyError.message);
+        }
+      } else {
+        console.log('ℹ️ Backend proxy URL not configured (set VITE_SATELLITE_PROXY_URL in .env)');
+      }
+      
+      // 2. Try to get REAL satellite imagery from NASA GIBS (MODIS)
       let satelliteImageryData = null;
       let dataSource = 'Multi-source';
       let confidence = 0.85;
@@ -202,6 +276,11 @@ export class SatelliteDataService {
       // Note: This would require an OpenWeatherMap API key
       // For now, we'll use realistic weather simulation based on location and season
       
+      if (!this.apiKey) {
+        console.warn('OpenWeather API key missing - using simulated weather data instead.');
+        return this.simulateRealisticWeather(coordinates);
+      }
+
       const response = await fetch(
         `https://api.openweathermap.org/data/2.5/weather?lat=${coordinates.lat}&lon=${coordinates.lng}&appid=${this.apiKey}&units=metric`
       );
@@ -216,11 +295,12 @@ export class SatelliteDataService {
           windSpeed: data.wind.speed
         };
       } else {
-        throw new Error('Weather API not available');
+        console.warn('OpenWeather API responded with non-200 status, using simulated weather data.');
+        return this.simulateRealisticWeather(coordinates);
       }
       
     } catch (error) {
-      // Fallback to realistic weather simulation
+      console.warn('OpenWeather API call failed, using simulated weather data.', error);
       return this.simulateRealisticWeather(coordinates);
     }
   }
@@ -446,4 +526,4 @@ export class SatelliteDataService {
   }
 }
 
-export const satelliteDataService = new SatelliteDataService('AIzaSyBZlJtstGEj9wCMP5_O5PaGytIi-iForN0');
+export const satelliteDataService = new SatelliteDataService();

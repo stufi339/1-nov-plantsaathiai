@@ -49,6 +49,7 @@
   "back": "वापस",
   "voice_input": "ध्वनि इनपुट",
   "listen_message": "संदेश सुनें",
+  "critical_alerts": "महत्वपूर्ण चेतावनी",
   "voice_commands": "ध्वनि कमांड",
   "speak_in_hindi": "हिंदी में बोलें",
   "voice_help": "ध्वनि मदद",
@@ -257,5 +258,20 @@
   "product": "उत्पाद",
   "educationalVideos": "खेती की जानकारी",
   "successStories": "सफलता की कहानियां",
-  "communityGallery": "किसान समुदाय"
+  "communityGallery": "किसान समुदाय",
+  
+  "mandiPrices": "मंडी भाव",
+  "mandiPricesSubtitle": "भारत भर के बाजारों से दैनिक थोक कीमतें",
+  "selectState": "राज्य चुनें",
+  "allStates": "सभी राज्य",
+  "selectCommodity": "फसल चुनें",
+  "allCommodities": "सभी फसलें",
+  "search": "खोजें",
+  "searchMarkets": "बाजार खोजें...",
+  "refresh": "ताज़ा करें",
+  "loadingPrices": "कीमतें लोड हो रही हैं...",
+  "noPricesFound": "कोई कीमत नहीं मिली",
+  "minPrice": "न्यूनतम मूल्य",
+  "maxPrice": "अधिकतम मूल्य",
+  "modalPrice": "औसत मूल्य"
 }

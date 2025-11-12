@@ -2,8 +2,9 @@
  * WeatherService - OpenWeather API integration for agricultural weather forecasting
  */
 
-const OPENWEATHER_API_KEY = '623822e31715b644264f0f606c4a9952';
+const OPENWEATHER_API_KEY = 'c1a7f0bdd3017863f8fd443972557632';
 const OPENWEATHER_BASE_URL = 'https://api.openweathermap.org/data/2.5';
+const OPENWEATHER_ONECALL_URL = 'https://api.openweathermap.org/data/3.0/onecall';
 
 export interface CurrentWeather {
   temp: number;
@@ -61,23 +62,87 @@ export class WeatherService {
       );
 
       if (!currentResponse.ok) {
-        throw new Error(`Weather API error: ${currentResponse.status}`);
+        console.error(`Weather API error: ${currentResponse.status}`);
+        // Return mock data if API fails
+        return this.getMockWeatherData(city);
       }
 
       const currentData = await currentResponse.json();
 
-      // Get 5-day forecast
+      // Get 5-day forecast (40 data points, 3-hour intervals)
       const forecastResponse = await fetch(
-        `${this.baseUrl}/forecast?q=${encodeURIComponent(city)}&appid=${this.apiKey}&units=metric`
+        `${this.baseUrl}/forecast?q=${encodeURIComponent(city)}&appid=${this.apiKey}&units=metric&cnt=40`
       );
 
       if (!forecastResponse.ok) {
-        throw new Error(`Forecast API error: ${forecastResponse.status}`);
+        console.error(`Forecast API error: ${forecastResponse.status}`);
+        // Return mock data if API fails
+        return this.getMockWeatherData(city);
       }
 
       const forecastData = await forecastResponse.json();
+      console.log('📊 Forecast API response for', city, ':', {
+        count: forecastData.list?.length,
+        sample: forecastData.list?.slice(0, 2)
+      });
 
-      return this.formatWeatherData(currentData, forecastData);
+      const result = this.formatWeatherData(currentData, forecastData);
+      console.log('📅 Formatted forecast days:', result.forecast.length, result.forecast.map(d => ({
+        day: d.day,
+        date: d.date,
+        precip: d.precipitation
+      })));
+
+      return result;
+    } catch (error) {
+      console.error('Failed to fetch weather data:', error);
+      // Return mock data as fallback
+      return this.getMockWeatherData(city);
+    }
+  }
+
+  /**
+   * Get weather by coordinates (using One Call API 3.0 for 16-day forecast)
+   */
+  async getWeatherByCoords(lat: number, lon: number): Promise<WeatherData> {
+    try {
+      // Try One Call API 3.0 first (16-day forecast) - requires paid subscription
+      try {
+        const oneCallResponse = await fetch(
+          `${OPENWEATHER_ONECALL_URL}?lat=${lat}&lon=${lon}&appid=${this.apiKey}&units=metric&exclude=minutely,hourly`
+        );
+
+        if (oneCallResponse.ok) {
+          const oneCallData = await oneCallResponse.json();
+          console.log('✅ Using One Call API 3.0 - 16-day forecast available');
+
+          // Get location name from reverse geocoding
+          const geoResponse = await fetch(
+            `http://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${this.apiKey}`
+          );
+          
+          let locationName = 'Unknown';
+          let country = '';
+          
+          if (geoResponse.ok) {
+            const geoData = await geoResponse.json();
+            if (geoData.length > 0) {
+              locationName = geoData[0].name;
+              country = geoData[0].country;
+            }
+          }
+
+          return this.formatOneCallData(oneCallData, locationName, country);
+        } else {
+          console.log(`⚠️ One Call API 3.0 returned ${oneCallResponse.status} - requires paid subscription. Falling back to free 5-day forecast.`);
+        }
+      } catch (oneCallError) {
+        console.log('⚠️ One Call API 3.0 not available (requires paid plan). Using free 5-day forecast API.');
+      }
+
+      // Fallback to standard API (5-day forecast - free tier)
+      console.log('📊 Using standard API - 5-day forecast (free tier)');
+      return this.getWeatherByCoordsFallback(lat, lon);
     } catch (error) {
       console.error('Failed to fetch weather data:', error);
       throw error;
@@ -85,9 +150,9 @@ export class WeatherService {
   }
 
   /**
-   * Get weather by coordinates
+   * Fallback method using old API (5-day forecast)
    */
-  async getWeatherByCoords(lat: number, lon: number): Promise<WeatherData> {
+  private async getWeatherByCoordsFallback(lat: number, lon: number): Promise<WeatherData> {
     try {
       // Get current weather
       const currentResponse = await fetch(
@@ -119,7 +184,58 @@ export class WeatherService {
   }
 
   /**
-   * Format API response to our data structure
+   * Format One Call API 3.0 response (16-day forecast)
+   */
+  private formatOneCallData(oneCallData: any, locationName: string, country: string): WeatherData {
+    const current: CurrentWeather = {
+      temp: Math.round(oneCallData.current.temp),
+      feels_like: Math.round(oneCallData.current.feels_like),
+      temp_min: Math.round(oneCallData.current.temp),
+      temp_max: Math.round(oneCallData.current.temp),
+      humidity: oneCallData.current.humidity,
+      pressure: oneCallData.current.pressure,
+      description: oneCallData.current.weather[0].description,
+      icon: oneCallData.current.weather[0].icon,
+      wind_speed: oneCallData.current.wind_speed,
+      wind_deg: oneCallData.current.wind_deg,
+      clouds: oneCallData.current.clouds,
+      visibility: oneCallData.current.visibility,
+      dt: oneCallData.current.dt,
+    };
+
+    // Process daily forecast (up to 16 days)
+    const forecast: ForecastDay[] = oneCallData.daily.slice(0, 16).map((day: any, index: number) => {
+      const date = new Date(day.dt * 1000);
+      const dateKey = date.toISOString().split('T')[0];
+      const dayName = this.getDayName(date);
+
+      return {
+        date: dateKey,
+        day: dayName,
+        temp_max: Math.round(day.temp.max),
+        temp_min: Math.round(day.temp.min),
+        description: day.weather[0].main,
+        icon: day.weather[0].icon,
+        precipitation: Math.round((day.pop || 0) * 100),
+        humidity: day.humidity,
+        wind_speed: Math.round(day.wind_speed),
+      };
+    });
+
+    // Generate farming advice based on weather
+    const farmingAdvice = this.generateFarmingAdvice(current, forecast);
+
+    return {
+      location: locationName,
+      country: country,
+      current,
+      forecast,
+      farmingAdvice,
+    };
+  }
+
+  /**
+   * Format API response to our data structure (fallback method)
    */
   private formatWeatherData(currentData: any, forecastData: any): WeatherData {
     const current: CurrentWeather = {
@@ -138,10 +254,10 @@ export class WeatherService {
       dt: currentData.dt,
     };
 
-    // Process 5-day forecast (group by day)
+    // Process forecast (group by day)
     const forecastByDay = this.groupForecastByDay(forecastData.list);
 
-    const forecast: ForecastDay[] = forecastByDay.slice(0, 5);
+    const forecast: ForecastDay[] = forecastByDay.slice(0, 16);
 
     // Generate farming advice based on weather
     const farmingAdvice = this.generateFarmingAdvice(current, forecast);
@@ -159,6 +275,7 @@ export class WeatherService {
    * Group forecast data by day
    */
   private groupForecastByDay(forecastList: any[]): ForecastDay[] {
+    console.log('🔄 Grouping forecast data, total items:', forecastList.length);
     const days: { [key: string]: any[] } = {};
 
     forecastList.forEach((item) => {
@@ -170,6 +287,8 @@ export class WeatherService {
       }
       days[dateKey].push(item);
     });
+
+    console.log('📅 Grouped into days:', Object.keys(days).length, 'days');
 
     return Object.entries(days).map(([dateKey, items]) => {
       const temps = items.map((i) => i.main.temp);
@@ -343,6 +462,54 @@ export class WeatherService {
         }
       );
     });
+  }
+
+  /**
+   * Get mock weather data as fallback when API fails
+   */
+  private getMockWeatherData(location: string): WeatherData {
+    const current: CurrentWeather = {
+      temp: 28,
+      feels_like: 30,
+      temp_min: 24,
+      temp_max: 32,
+      humidity: 65,
+      pressure: 1013,
+      description: 'partly cloudy',
+      icon: '02d',
+      wind_speed: 12,
+      wind_deg: 180,
+      clouds: 40,
+      visibility: 10000,
+      dt: Math.floor(Date.now() / 1000),
+    };
+
+    const forecast: ForecastDay[] = [];
+    for (let i = 0; i < 5; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() + i);
+      forecast.push({
+        date: date.toISOString().split('T')[0],
+        day: this.getDayName(date),
+        temp_max: 30 + Math.floor(Math.random() * 5),
+        temp_min: 22 + Math.floor(Math.random() * 5),
+        description: i % 2 === 0 ? 'Sunny' : 'Partly Cloudy',
+        icon: i % 2 === 0 ? '01d' : '02d',
+        precipitation: Math.floor(Math.random() * 30),
+        humidity: 60 + Math.floor(Math.random() * 20),
+        wind_speed: 10 + Math.floor(Math.random() * 10),
+      });
+    }
+
+    const farmingAdvice = this.generateFarmingAdvice(current, forecast);
+
+    return {
+      location,
+      country: 'IN',
+      current,
+      forecast,
+      farmingAdvice,
+    };
   }
 }
 

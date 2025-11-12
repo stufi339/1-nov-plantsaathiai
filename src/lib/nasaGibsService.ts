@@ -97,11 +97,9 @@ export class NASAGibsService {
 
       const url = `${this.gibsBaseUrl}?${params.toString()}`;
       
-      const response = await fetch(url, {
-        headers: this.nasaToken ? {
-          'Authorization': `Bearer ${this.nasaToken}`
-        } : {}
-      });
+      // NASA GIBS public WMS does NOT require auth.
+      // Sending Authorization from browser triggers CORS preflight failures.
+      const response = await fetch(url);
 
       if (!response.ok) {
         return null;

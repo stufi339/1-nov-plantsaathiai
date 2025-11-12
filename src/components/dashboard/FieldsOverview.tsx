@@ -37,19 +37,20 @@ export const FieldsOverview = ({ fields }: FieldsOverviewProps) => {
     // Map health status to display
     if (field.health?.status) {
       const statusMap: any = {
-        "healthy": { status: "Excellent", color: "bg-green-500", textColor: "text-green-700" },
-        "monitor": { status: "Good", color: "bg-blue-500", textColor: "text-blue-700" },
-        "stress": { status: "Poor", color: "bg-red-500", textColor: "text-red-700" },
-        "unknown": { status: "Pending", color: "bg-gray-500", textColor: "text-gray-700" }
+        "healthy": { status: "Healthy", color: "bg-green-500", textColor: "text-green-700", borderColor: "border-green-300", bgColor: "bg-green-50" },
+        "monitor": { status: "Monitoring", color: "bg-blue-500", textColor: "text-blue-700", borderColor: "border-blue-300", bgColor: "bg-blue-50" },
+        "stress": { status: "Needs Attention", color: "bg-orange-500", textColor: "text-orange-700", borderColor: "border-orange-300", bgColor: "bg-orange-50" },
+        "unknown": { status: "Analyzing Data", color: "bg-yellow-500", textColor: "text-yellow-700", borderColor: "border-yellow-300", bgColor: "bg-yellow-50" }
       };
       return statusMap[field.health.status] || statusMap["unknown"];
     }
     
     // Fallback to NDVI-based calculation
-    if (ndvi > 0.7) return { status: "Excellent", color: "bg-green-500", textColor: "text-green-700" };
-    if (ndvi > 0.5) return { status: "Good", color: "bg-blue-500", textColor: "text-blue-700" };
-    if (ndvi > 0.3) return { status: "Fair", color: "bg-yellow-500", textColor: "text-yellow-700" };
-    return { status: "Poor", color: "bg-red-500", textColor: "text-red-700" };
+    if (ndvi > 0.7) return { status: "Healthy", color: "bg-green-500", textColor: "text-green-700", borderColor: "border-green-300", bgColor: "bg-green-50" };
+    if (ndvi > 0.5) return { status: "Good", color: "bg-blue-500", textColor: "text-blue-700", borderColor: "border-blue-300", bgColor: "bg-blue-50" };
+    if (ndvi > 0.3) return { status: "Fair", color: "bg-yellow-500", textColor: "text-yellow-700", borderColor: "border-yellow-300", bgColor: "bg-yellow-50" };
+    if (ndvi > 0) return { status: "Needs Care", color: "bg-orange-500", textColor: "text-orange-700", borderColor: "border-orange-300", bgColor: "bg-orange-50" };
+    return { status: "Analyzing Data", color: "bg-gray-400", textColor: "text-gray-700", borderColor: "border-gray-300", bgColor: "bg-gray-50" };
   };
 
   return (
@@ -75,7 +76,8 @@ export const FieldsOverview = ({ fields }: FieldsOverviewProps) => {
           return (
             <Card
               key={field.id}
-              className="p-4 cursor-pointer hover:shadow-md transition-shadow"
+              className="p-4 cursor-pointer hover:shadow-md transition-all hover:scale-[1.02] border-l-4"
+              style={{ borderLeftColor: health.color.replace('bg-', '#') }}
               onClick={() => navigate(`/soilsati/field/${field.id}`)}
             >
               <div className="flex items-start justify-between mb-3">
@@ -88,7 +90,10 @@ export const FieldsOverview = ({ fields }: FieldsOverviewProps) => {
                     <span>{field.location || "Unknown"}</span>
                   </div>
                 </div>
-                <Badge variant="secondary" className={`${health.color} text-white`}>
+                <Badge 
+                  variant="outline" 
+                  className={`${health.borderColor} ${health.textColor} ${health.bgColor} border font-medium`}
+                >
                   {health.status}
                 </Badge>
               </div>

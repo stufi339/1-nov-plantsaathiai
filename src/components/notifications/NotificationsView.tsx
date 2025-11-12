@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { weatherService } from "@/lib/weatherService";
 import { jalSaathiService } from "@/lib/jalSaathiService";
 import { diseaseDetectionService } from "@/lib/diseaseDetectionService";
+import { supabaseFieldService } from "@/lib/supabaseFieldService";
 
 export const NotificationsView = () => {
   const { t } = useTranslation();
@@ -16,6 +17,7 @@ export const NotificationsView = () => {
   const [weatherData, setWeatherData] = useState<any>(null);
   const [irrigationData, setIrrigationData] = useState<any>(null);
   const [diseaseOutbreaks, setDiseaseOutbreaks] = useState<any[]>([]);
+  const [fieldsData, setFieldsData] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("all");
 
   useEffect(() => {
@@ -37,7 +39,8 @@ export const NotificationsView = () => {
       }
 
       // Load fields data
-      const fields = loadFieldsFromStorage();
+      const fields = await loadFieldsFromStorage();
+      setFieldsData(fields);
 
       // Load irrigation schedule for first field
       if (fields.length > 0) {
@@ -73,41 +76,117 @@ export const NotificationsView = () => {
     }
   };
 
-  const loadFieldsFromStorage = () => {
+  const loadFieldsFromStorage = async () => {
     try {
-      // Load fields list from localStorage
-      const fieldsList = JSON.parse(localStorage.getItem('fields_list') || '[]');
+      // Load fields from Supabase
+      const fields = await supabaseFieldService.getFields();
       
-      // Enrich each field with data from field_*_data
-      const enrichedFields = fieldsList.map((field: any) => {
-        try {
-          const fieldDataKey = `field_${field.id}_data`;
-          const fieldData = localStorage.getItem(fieldDataKey);
-          if (fieldData) {
-            const parsedData = JSON.parse(fieldData);
-            return {
-              ...field,
-              ...parsedData,
-              name: field.name,
-              cropType: field.cropType,
-              area: field.area,
-              sowingDate: field.sowingDate
-            };
+      // Enrich each field with latest field data
+      const enrichedFields = await Promise.all(
+        fields.map(async (field: any) => {
+          try {
+            const latestData = await supabaseFieldService.getLatestFieldData(field.id);
+            if (latestData) {
+              return {
+                ...field,
+                cropType: field.crop_type,
+                ndvi: latestData.ndvi,
+                evi: latestData.evi,
+                ndwi: latestData.ndwi,
+                moisture: latestData.soil_moisture,
+                temperature: latestData.temperature,
+                timestamp: latestData.timestamp
+              };
+            }
+          } catch (error) {
+            console.error(`Failed to load data for field ${field.id}:`, error);
           }
-        } catch (error) {
-          console.error(`Failed to load data for field ${field.id}:`, error);
-        }
-        return field;
-      });
+          return {
+            ...field,
+            cropType: field.crop_type
+          };
+        })
+      );
       
       return enrichedFields;
     } catch (error) {
+      console.error("Failed to load fields:", error);
       return [];
     }
   };
 
   const generateAllAlerts = () => {
     const alerts: any[] = [];
+    const currentHour = new Date().getHours();
+
+    // Add Critical Alerts from Dashboard (NDVI, Water Stress, Irrigation, Spray)
+    for (const field of fieldsData) {
+      // NDVI Drop Alert
+      if (field.ndvi && field.ndvi < 0.6) {
+        const ndviPercentage = Math.round(field.ndvi * 100);
+        const historicalNDVI = 0.75;
+        const drop = Math.round(((historicalNDVI - field.ndvi) / historicalNDVI) * 100);
+        const potentialLoss = Math.round((historicalNDVI - field.ndvi) * 10000);
+        
+        alerts.push({
+          type: "critical",
+          category: "field_health",
+          icon: AlertTriangle,
+          title: `🔴 ${field.name}: Plant Health Critical`,
+          message: `Health dropped to ${ndviPercentage}% (${drop}% decline). Potential yield loss: ₹${potentialLoss}. Apply NPK fertilizer (20-20-0) today.`,
+          color: "border-red-500 bg-red-50",
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      // Water Stress Alert
+      if (field.ndwi && field.ndwi < 0.3 && field.moisture && field.moisture < 30) {
+        alerts.push({
+          type: "critical",
+          category: "field_health",
+          icon: Droplets,
+          title: `💧 ${field.name}: Severe Water Stress`,
+          message: `Crop stress can reduce yield by 20-30%. Irrigate immediately. Water deeply for 2-3 hours.`,
+          color: "border-red-500 bg-red-50",
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+
+    // Irrigation Timing Alert (Morning 5-10 AM)
+    if (currentHour >= 5 && currentHour < 10 && irrigationData) {
+      const needsIrrigation = fieldsData.some(f => 
+        (f.moisture && f.moisture < 40) || (f.ndwi && f.ndwi < 0.4)
+      );
+      
+      if (needsIrrigation) {
+        alerts.push({
+          type: "warning",
+          category: "irrigation",
+          icon: Droplets,
+          title: "🟡 Perfect Irrigation Window NOW",
+          message: "Save ₹300 by watering now vs afternoon (50% less evaporation). Irrigate at 5-10 AM for best water absorption.",
+          color: "border-orange-500 bg-orange-50",
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+
+    // Spray Alert (Morning 5-10 AM, low wind)
+    if (currentHour >= 5 && currentHour < 10 && weatherData) {
+      const windSpeed = weatherData.current?.wind_speed || 0;
+      if (windSpeed < 10) {
+        alerts.push({
+          type: "info",
+          category: "spray",
+          icon: AlertTriangle,
+          title: "🔵 Perfect Spray Window NOW",
+          message: `Low wind (${windSpeed} km/h). Pesticides won't drift. Save ₹200 on wasted spray. Apply before 10 AM.`,
+          color: "border-blue-500 bg-blue-50",
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
 
     // Weather-based alerts
     if (weatherData) {

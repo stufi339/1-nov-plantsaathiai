@@ -111,38 +111,62 @@ export class BlackBoxService {
   private sessionId: string;
   private userId?: string;
   private sessionStartTime: Date;
+  private initialized = false;
 
   constructor() {
+    // Defer heavy work until we know we're in a browser environment
     this.sessionId = this.generateSessionId();
     this.sessionStartTime = new Date();
-    this.initializeSession();
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      this.safeInitializeSession();
+    }
   }
 
   private generateSessionId(): string {
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  private initializeSession(): void {
-    // Clean up old sessions on initialization
-    this.cleanupOldSessions();
-    
-    // Check storage usage
-    const storageInfo = this.getStorageInfo();
-    if (storageInfo.percentage > 80) {
-      console.warn(`Black box storage at ${storageInfo.percentage.toFixed(1)}% capacity`);
-      // Clear old data if storage is getting full
-      this.clearLogs();
+  /**
+   * Initialize the black box session in a safe, browser-only way.
+   * - No-op outside browser (SSR/tests).
+   * - Applies bounded cleanup rather than wiping all previous sessions.
+   */
+  private safeInitializeSession(): void {
+    if (this.initialized) return;
+    this.initialized = true;
+
+    try {
+      // Clean up only very old sessions to avoid unbounded growth
+      this.cleanupOldSessions();
+
+      // Check storage usage (best-effort)
+      const storageInfo = this.getStorageInfo();
+      if (storageInfo.percentage > 90) {
+        console.warn(`Black box storage at ${storageInfo.percentage.toFixed(1)}% capacity`);
+        // If close to limit, clear only blackbox logs, not entire localStorage
+        this.clearLogs();
+      }
+
+      // Log session start with non-sensitive metadata
+      this.logUserInteraction(
+        'session_start',
+        'app_init',
+        undefined,
+        {
+          sessionId: this.sessionId,
+          timestamp: this.sessionStartTime.toISOString(),
+          userAgent: navigator.userAgent,
+          screenSize: `${window.screen.width}x${window.screen.height}`,
+          isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+            navigator.userAgent
+          ),
+          storageUsage: `${storageInfo.percentage.toFixed(1)}%`
+        }
+      );
+    } catch (error) {
+      // Never let analytics break the app
+      console.error('BlackBox initialization failed:', error);
     }
-    
-    // Log session start
-    this.logUserInteraction('session_start', 'app_init', undefined, {
-      sessionId: this.sessionId,
-      timestamp: this.sessionStartTime,
-      userAgent: navigator.userAgent,
-      screenSize: `${window.screen.width}x${window.screen.height}`,
-      isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-      storageUsage: storageInfo.percentage.toFixed(1) + '%'
-    });
   }
 
   /**
@@ -249,7 +273,7 @@ export class BlackBoxService {
       interactionType,
       elementId,
       fieldId,
-      additionalData,
+      additionalData: this.sanitizeAdditionalData(additionalData),
       userLocation: locationData
     };
 
@@ -301,10 +325,10 @@ export class BlackBoxService {
     const log: UserFeedbackLog = {
       timestamp: new Date(),
       feedbackType,
-      content,
+      content: this.truncateString(content, 500),
       rating,
       fieldId,
-      relatedFeature,
+      relatedFeature: this.truncateString(relatedFeature, 100),
       userLocation: locationData
     };
 
@@ -483,17 +507,47 @@ export class BlackBoxService {
    */
   private cleanupOldSessions(): void {
     try {
+      const now = Date.now();
       const keys = Object.keys(localStorage);
       const blackboxKeys = keys.filter(key => key.startsWith('blackbox_'));
-      
-      // Remove all keys except current session
+
+      let removed = 0;
+
       blackboxKeys.forEach(key => {
-        if (!key.includes(this.sessionId)) {
+        try {
+          const raw = localStorage.getItem(key);
+          if (!raw) {
+            localStorage.removeItem(key);
+            removed++;
+            return;
+          }
+
+          const logs = JSON.parse(raw);
+          if (!Array.isArray(logs) || logs.length === 0) {
+            localStorage.removeItem(key);
+            removed++;
+            return;
+          }
+
+          const last = logs[logs.length - 1];
+          const ts = last.timestamp ? new Date(last.timestamp).getTime() : NaN;
+
+          // Remove sessions older than 30 days or clearly invalid
+          const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+          if (!Number.isFinite(ts) || now - ts > THIRTY_DAYS) {
+            localStorage.removeItem(key);
+            removed++;
+          }
+        } catch {
+          // On parse error, remove corrupted entry
           localStorage.removeItem(key);
+          removed++;
         }
       });
-      
-      console.log(`Cleaned up ${blackboxKeys.length} old black box sessions`);
+
+      if (removed > 0) {
+        console.log(`BlackBox: cleaned up ${removed} old/invalid session log sets`);
+      }
     } catch (error) {
       console.error('Failed to cleanup old sessions:', error);
     }
@@ -609,8 +663,57 @@ export class BlackBoxService {
    * Set user ID for better tracking
    */
   setUserId(userId: string): void {
-    this.userId = userId;
-    this.logUserInteraction('user_identified', 'auth_system', undefined, { userId });
+    // Expect a non-sensitive internal identifier (no phone/PII)
+    this.userId = this.truncateString(userId, 128);
+    this.logUserInteraction('user_identified', 'auth_system', undefined, {
+      userId: this.userId
+    });
+  }
+
+  /**
+   * Best-effort sanitization for arbitrary additionalData fields.
+   * - Strips obviously sensitive keys.
+   * - Truncates large values.
+   */
+  private sanitizeAdditionalData(data?: Record<string, any>): Record<string, any> | undefined {
+    if (!data) return undefined;
+    const SENSITIVE_KEYS = [
+      'password',
+      'token',
+      'auth',
+      'authorization',
+      'cookie',
+      'secret',
+      'phone',
+      'email'
+    ];
+
+    const sanitized: Record<string, any> = {};
+    for (const [key, value] of Object.entries(data)) {
+      const lowerKey = key.toLowerCase();
+      if (SENSITIVE_KEYS.some(sk => lowerKey.includes(sk))) {
+        continue;
+      }
+      if (typeof value === 'string') {
+        sanitized[key] = this.truncateString(value, 500);
+      } else if (typeof value === 'number' || typeof value === 'boolean') {
+        sanitized[key] = value;
+      } else if (Array.isArray(value)) {
+        sanitized[key] = value.slice(0, 20);
+      } else if (value && typeof value === 'object') {
+        // Avoid deep recursion; shallow-copy non-sensitive summary
+        sanitized[key] = '[object]';
+      }
+    }
+    return Object.keys(sanitized).length ? sanitized : undefined;
+  }
+
+  /**
+   * Truncate a string to a safe maximum length.
+   */
+  private truncateString(input: string, max: number): string {
+    if (!input) return input;
+    return input.length > max ? input.slice(0, max) + '…' : input;
   }
 }
 

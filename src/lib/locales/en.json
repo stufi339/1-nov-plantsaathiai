@@ -48,6 +48,7 @@
   "back": "Back",
   "voice_input": "Voice Input",
   "listen_message": "Listen to Message",
+  "critical_alerts": "Critical Alert",
   "voice_commands": "Voice Commands",
   "speak_in_hindi": "Speak in Hindi",
   "voice_help": "Voice Help",
@@ -133,6 +134,7 @@
   "satellite_data_failed_desc": "Unable to get satellite data. Please try again.",
   "diagnose_plant_disease": "📸 Diagnose Plant Disease",
   "predict_yield_unlocked": "📈 Predict Yield (Unlocked!)",
+  "predict_yield_locked": "🔒 Yield prediction is locked until the crop reaches 80% maturity. See advisory for next steps.",
 
   "analysis_ready": "🌾 {{fieldName}} Analysis Ready",
   "analysis_ready_desc": "Your {{cropType}} field is {{status}}. Scroll down to see detailed vegetation indices.",
@@ -353,5 +355,20 @@
   "just_now": "Just now",
   "minutes_ago": "m ago",
   "hours_ago": "h ago",
-  "days_ago": "d ago"
+  "days_ago": "d ago",
+  
+  "mandiPrices": "Mandi Prices",
+  "mandiPricesSubtitle": "Daily wholesale commodity prices from markets across India",
+  "selectState": "Select State",
+  "allStates": "All States",
+  "selectCommodity": "Select Commodity",
+  "allCommodities": "All Commodities",
+  "search": "Search",
+  "searchMarkets": "Search markets...",
+  "refresh": "Refresh",
+  "loadingPrices": "Loading prices...",
+  "noPricesFound": "No prices found",
+  "minPrice": "Min Price",
+  "maxPrice": "Max Price",
+  "modalPrice": "Modal Price"
 }

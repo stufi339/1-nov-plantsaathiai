@@ -1,24 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GEE Integration Test</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
-        .success { background-color: #d4edda; border-color: #c3e6cb; }
-        .error { background-color: #f8d7da; border-color: #f5c6cb; }
-        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
-        pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
-        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        button:hover { background: #0056b3; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        .warning {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+        }
+
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
     </style>
 </head>
+
 <body>
     <h1>🛰️ Google Earth Engine Integration Test</h1>
-    <p>This test will verify that your Plant Saathi app can connect to Google Earth Engine and retrieve real satellite data.</p>
+    <p>This test will verify that your Plant Saathi app can connect to Google Earth Engine and retrieve real satellite
+        data.</p>
 
     <div id="test-results"></div>
 
@@ -215,4 +260,5 @@
         }
     </script>
 </body>
+
 </html>

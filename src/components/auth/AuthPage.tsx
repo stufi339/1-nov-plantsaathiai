@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabaseBlackBoxService } from '@/lib/supabaseBlackBoxService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -84,6 +85,14 @@ export default function AuthPage() {
                     title: 'Welcome back!',
                     description: 'Successfully signed in.',
                 });
+
+                // Flush current session BlackBox logs to Supabase as user's personal memory
+                try {
+                    await supabaseBlackBoxService.flushCurrentSession();
+                } catch (syncError) {
+                    console.error('BlackBox sync after sign-in failed:', syncError);
+                }
+
                 navigate('/dashboard');
             }
         } catch (error: any) {
@@ -148,6 +157,14 @@ export default function AuthPage() {
                     title: 'Success!',
                     description: 'Phone verified successfully.',
                 });
+
+                // Flush current session BlackBox logs to Supabase after successful phone auth
+                try {
+                    await supabaseBlackBoxService.flushCurrentSession();
+                } catch (syncError) {
+                    console.error('BlackBox sync after phone verification failed:', syncError);
+                }
+
                 navigate('/dashboard');
             }
         } catch (error: any) {

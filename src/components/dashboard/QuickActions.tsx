@@ -9,7 +9,8 @@ import {
   CloudSun,
   Droplets,
   TrendingUp,
-  MapPin
+  MapPin,
+  IndianRupee
 } from "lucide-react";
 
 export const QuickActions = () => {
@@ -80,40 +81,41 @@ export const QuickActions = () => {
       color: "bg-teal-500",
       path: "/soilsati/map-field",
       gradient: "from-teal-400 to-teal-600"
+    },
+    {
+      icon: IndianRupee,
+      title: t("mandiPrices") || "Mandi Prices",
+      description: t("market_prices") || "Market Prices",
+      color: "bg-yellow-500",
+      path: "/mandi-prices",
+      gradient: "from-yellow-400 to-yellow-600"
     }
   ];
 
   return (
-    <Card className="p-4">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">
-        {t("all_modules") || "All Modules"}
+    <Card className="p-5 bg-white/80 backdrop-blur-sm border border-gray-200 shadow-sm">
+      <h2 className="text-lg font-bold text-gray-900 mb-4">
+        {t("all_modules") || "Quick Access"}
       </h2>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
         {modules.map((module, index) => {
           const Icon = module.icon;
           return (
             <button
               key={index}
               onClick={() => navigate(module.path)}
-              className="group relative overflow-hidden rounded-xl p-4 text-left transition-all hover:scale-105 hover:shadow-lg"
+              className="group relative overflow-hidden rounded-lg p-3 text-center transition-all hover:scale-105 bg-gray-50 hover:bg-white border border-gray-200 hover:border-gray-300 hover:shadow-md"
             >
-              {/* Gradient Background */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${module.gradient} opacity-90 group-hover:opacity-100 transition-opacity`}></div>
-              
-              {/* Content */}
-              <div className="relative z-10">
-                <Icon className="h-8 w-8 text-white mb-2" />
-                <h3 className="font-semibold text-white text-sm mb-1">
-                  {module.title}
-                </h3>
-                <p className="text-xs text-white/90">
-                  {module.description}
-                </p>
+              {/* Icon with color */}
+              <div className={`${module.color} w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform`}>
+                <Icon className="h-6 w-6 text-white" />
               </div>
-
-              {/* Hover Effect */}
-              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+              
+              {/* Title */}
+              <h3 className="font-semibold text-gray-900 text-xs leading-tight">
+                {module.title}
+              </h3>
             </button>
           );
         })}
