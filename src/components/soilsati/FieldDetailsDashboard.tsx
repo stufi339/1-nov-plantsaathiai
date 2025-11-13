@@ -144,12 +144,31 @@ export const FieldDetailsDashboard = () => {
   }, [fieldId, navigate, toast]);
 
   const calculateExpectedHarvest = (sowingDate: string, cropType: string) => {
-    const sowing = new Date(sowingDate);
-    const daysToHarvest = cropType.toLowerCase() === 'rice' ? 150 : 
-                          cropType.toLowerCase() === 'wheat' ? 120 : 90;
-    const harvest = new Date(sowing);
-    harvest.setDate(harvest.getDate() + daysToHarvest);
-    return harvest.toISOString().split('T')[0];
+    try {
+      if (!sowingDate) {
+        const defaultDate = new Date();
+        defaultDate.setDate(defaultDate.getDate() + 120);
+        return defaultDate.toISOString().split('T')[0];
+      }
+      
+      const sowing = new Date(sowingDate);
+      if (isNaN(sowing.getTime())) {
+        const defaultDate = new Date();
+        defaultDate.setDate(defaultDate.getDate() + 120);
+        return defaultDate.toISOString().split('T')[0];
+      }
+      
+      const daysToHarvest = cropType.toLowerCase() === 'rice' ? 150 : 
+                            cropType.toLowerCase() === 'wheat' ? 120 : 90;
+      const harvest = new Date(sowing);
+      harvest.setDate(harvest.getDate() + daysToHarvest);
+      return harvest.toISOString().split('T')[0];
+    } catch (error) {
+      console.warn('Error calculating expected harvest:', error);
+      const defaultDate = new Date();
+      defaultDate.setDate(defaultDate.getDate() + 120);
+      return defaultDate.toISOString().split('T')[0];
+    }
   };
 
   // Log field access when field data is loaded
