@@ -81,26 +81,16 @@ export const FieldDetailsDashboard = () => {
           
           console.log('Loaded field data:', parsedField);
           
-          // Calculate center coordinates from polygon with validation
+          // Calculate center coordinates from polygon
           const coords = parsedField.coordinates || [];
           let centerLat = 0, centerLng = 0;
           if (coords.length > 0) {
-            let validCoords = 0;
-            coords.forEach((coord: any) => {
-              // Validate coordinate is an array with 2 elements
-              if (Array.isArray(coord) && coord.length >= 2) {
-                const [lng, lat] = coord;
-                if (typeof lng === 'number' && typeof lat === 'number') {
-                  centerLng += lng;
-                  centerLat += lat;
-                  validCoords++;
-                }
-              }
+            coords.forEach(([lng, lat]: [number, number]) => {
+              centerLng += lng;
+              centerLat += lat;
             });
-            if (validCoords > 0) {
-              centerLat /= validCoords;
-              centerLng /= validCoords;
-            }
+            centerLat /= coords.length;
+            centerLng /= coords.length;
           }
           
           // Check if we have cached satellite data
@@ -154,11 +144,7 @@ export const FieldDetailsDashboard = () => {
   }, [fieldId, navigate, toast]);
 
   const calculateExpectedHarvest = (sowingDate: string, cropType: string) => {
-    if (!sowingDate) return 'Not set';
-    
     const sowing = new Date(sowingDate);
-    if (isNaN(sowing.getTime())) return 'Invalid date';
-    
     const daysToHarvest = cropType.toLowerCase() === 'rice' ? 150 : 
                           cropType.toLowerCase() === 'wheat' ? 120 : 90;
     const harvest = new Date(sowing);
@@ -514,29 +500,33 @@ export const FieldDetailsDashboard = () => {
       )}
 
       {/* Field Health Map with Quadrants */}
-      <div className="px-6 mb-4">
-        <FieldHealthMap 
-          coordinates={field.coordinates}
-          quadrants={field.quadrants}
-          playAudio={playAudio}
-          playingAudio={playingAudio}
-        />
-      </div>
+      {field.coordinates && Array.isArray(field.coordinates) && field.coordinates.length > 0 && (
+        <div className="px-6 mb-4">
+          <FieldHealthMap 
+            coordinates={field.coordinates}
+            quadrants={field.quadrants}
+            playAudio={playAudio}
+            playingAudio={playingAudio}
+          />
+        </div>
+      )}
 
       {/* Vegetation Indices */}
-      <div className="px-6 mb-4">
-        <VegetationIndicesGrid 
-          fieldCoordinates={{
-            lat: field.coordinates[0][0],
-            lng: field.coordinates[0][1],
-            polygon: field.coordinates
-          }}
-          playAudio={playAudio}
-          playingAudio={playingAudio}
-          fieldId={fieldId || field.id}
-          onAnalysisComplete={(analysis) => setComprehensiveAnalysis(analysis)}
-        />
-      </div>
+      {field.coordinates && Array.isArray(field.coordinates) && field.coordinates.length > 0 && (
+        <div className="px-6 mb-4">
+          <VegetationIndicesGrid 
+            fieldCoordinates={{
+              lat: field.coordinates[0]?.[0] || field.centerCoordinates?.[0] || 0,
+              lng: field.coordinates[0]?.[1] || field.centerCoordinates?.[1] || 0,
+              polygon: field.coordinates
+            }}
+            playAudio={playAudio}
+            playingAudio={playingAudio}
+            fieldId={fieldId || field.id}
+            onAnalysisComplete={(analysis) => setComprehensiveAnalysis(analysis)}
+          />
+        </div>
+      )}
 
       {/* Comprehensive Soil Properties (shown when analysis is complete) */}
       {comprehensiveAnalysis && (
