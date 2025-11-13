@@ -6,6 +6,7 @@ import { Sprout, Plus, TrendingUp, Droplets } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabaseFieldService } from "@/lib/supabaseFieldService";
+import { FieldStatusBadge } from "./FieldStatusBadge";
 
 interface Field {
   id: string;
@@ -181,9 +182,12 @@ export const MyFieldsList = () => {
                   <h3 className="text-lg font-semibold text-foreground">{field.name}</h3>
                   <p className="text-sm text-muted-foreground">🌾 {field.cropType}</p>
                 </div>
-                <Badge className={getHealthColor(field.health?.status || "unknown")}>
-                  {getHealthLabel(field.health?.status || "unknown")}
-                </Badge>
+                <div className="flex flex-col gap-2 items-end">
+                  <FieldStatusBadge status={(field as any).status || 'active'} size="sm" />
+                  <Badge className={getHealthColor(field.health?.status || "unknown")}>
+                    {getHealthLabel(field.health?.status || "unknown")}
+                  </Badge>
+                </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3 mb-3">

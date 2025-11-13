@@ -337,14 +337,18 @@ export const DiseaseDetectionView = () => {
 
                 <div className="space-y-3">
                   <div>
-                    <Button 
-                      className="w-full bg-gradient-to-r from-destructive to-destructive/80"
-                      onClick={() => document.getElementById('camera-input')?.click()}
-                      type="button"
-                    >
-                      <Camera className="w-4 h-4 mr-2" />
-                      Open Camera
-                    </Button>
+                    <label htmlFor="camera-input" className="block">
+                      <Button 
+                        className="w-full bg-gradient-to-r from-destructive to-destructive/80"
+                        type="button"
+                        asChild
+                      >
+                        <span className="cursor-pointer">
+                          <Camera className="w-4 h-4 mr-2" />
+                          Open Camera
+                        </span>
+                      </Button>
+                    </label>
                     <input
                       id="camera-input"
                       type="file"
@@ -352,27 +356,29 @@ export const DiseaseDetectionView = () => {
                       capture="environment"
                       className="hidden"
                       onChange={handleImageCapture}
-                      style={{ display: 'none' }}
                     />
                   </div>
 
                   <div>
-                    <Button 
-                      variant="outline" 
-                      className="w-full"
-                      onClick={() => document.getElementById('upload-input')?.click()}
-                      type="button"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload from Gallery
-                    </Button>
+                    <label htmlFor="upload-input" className="block">
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        type="button"
+                        asChild
+                      >
+                        <span className="cursor-pointer">
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload from Gallery
+                        </span>
+                      </Button>
+                    </label>
                     <input
                       id="upload-input"
                       type="file"
                       accept="image/*"
                       className="hidden"
                       onChange={handleImageCapture}
-                      style={{ display: 'none' }}
                     />
                   </div>
                 </div>

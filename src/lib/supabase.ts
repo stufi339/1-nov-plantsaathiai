@@ -14,6 +14,11 @@ export interface Field {
   crop_type: string;
   area: number;
   coordinates: any;
+  status?: 'active' | 'harvested' | 'dormant';
+  harvest_date?: string;
+  last_crop_type?: string;
+  reactivation_date?: string;
+  lifecycle_metadata?: any;
   created_at: string;
   updated_at: string;
 }

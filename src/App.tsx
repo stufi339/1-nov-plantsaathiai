@@ -29,24 +29,33 @@ import CropRotation from "./pages/CropRotation";
 import { MandiPrices } from "./pages/MandiPrices";
 import { blackBoxService } from "@/lib/blackBoxService";
 import { supabaseAnalyticsService } from "@/lib/supabaseAnalyticsService";
+import { pwaService } from "@/lib/pwaService";
+import { PWAInstallPrompt } from "@/components/pwa/PWAInstallPrompt";
+import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
+import { OfflineIndicator } from "@/components/pwa/OfflineIndicator";
 import { useEffect } from "react";
 
 const queryClient = new QueryClient();
 
 const App = () => {
   useEffect(() => {
+    // Initialize PWA
+    pwaService.initialize().catch(console.error);
+
     // Initialize black box service and log app start
     blackBoxService.logUserInteraction('session_start', 'app_initialization', undefined, {
       userAgent: navigator.userAgent,
       timestamp: new Date().toISOString(),
-      url: window.location.href
+      url: window.location.href,
+      isPWA: pwaService.isInstalled()
     });
 
     // Also log to Supabase for persistence
     supabaseAnalyticsService.logEvent('session_start', {
       userAgent: navigator.userAgent,
       timestamp: new Date().toISOString(),
-      url: window.location.href
+      url: window.location.href,
+      isPWA: pwaService.isInstalled()
     });
   }, []);
 
@@ -87,6 +96,11 @@ const App = () => {
             
             {/* AI Assistant Floating Action Button */}
             <AIAdvisorFAB />
+            
+            {/* PWA Components */}
+            <PWAInstallPrompt />
+            <PWAUpdatePrompt />
+            <OfflineIndicator />
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
