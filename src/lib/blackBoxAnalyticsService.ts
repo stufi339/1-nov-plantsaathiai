@@ -130,9 +130,16 @@ class BlackBoxAnalyticsService {
     }
 
     entries.forEach(entry => {
-      const dateStr = entry.timestamp.toISOString().split('T')[0];
-      if (timeSeriesMap.has(dateStr)) {
-        timeSeriesMap.set(dateStr, (timeSeriesMap.get(dateStr) || 0) + 1);
+      try {
+        if (!entry.timestamp) return;
+        const timestamp = entry.timestamp instanceof Date ? entry.timestamp : new Date(entry.timestamp);
+        if (isNaN(timestamp.getTime())) return;
+        const dateStr = timestamp.toISOString().split('T')[0];
+        if (timeSeriesMap.has(dateStr)) {
+          timeSeriesMap.set(dateStr, (timeSeriesMap.get(dateStr) || 0) + 1);
+        }
+      } catch (error) {
+        // Silently skip invalid timestamps
       }
     });
 
@@ -198,19 +205,31 @@ class BlackBoxAnalyticsService {
       'Data Summary'
     ];
 
-    const rows = entries.map(entry => [
-      entry.timestamp.toISOString(),
-      entry.type,
-      entry.userId || '',
-      entry.sessionId,
-      entry.fieldId || '',
-      entry.location?.state || '',
-      entry.location?.district || '',
-      entry.location?.village || '',
-      entry.location?.lat?.toString() || '',
-      entry.location?.lng?.toString() || '',
-      JSON.stringify(entry.data).substring(0, 100) // Truncate for CSV
-    ]);
+    const rows = entries.map(entry => {
+      let timestampStr = '';
+      try {
+        if (entry.timestamp) {
+          const timestamp = entry.timestamp instanceof Date ? entry.timestamp : new Date(entry.timestamp);
+          timestampStr = isNaN(timestamp.getTime()) ? '' : timestamp.toISOString();
+        }
+      } catch (error) {
+        timestampStr = '';
+      }
+      
+      return [
+        timestampStr,
+        entry.type,
+        entry.userId || '',
+        entry.sessionId,
+        entry.fieldId || '',
+        entry.location?.state || '',
+        entry.location?.district || '',
+        entry.location?.village || '',
+        entry.location?.lat?.toString() || '',
+        entry.location?.lng?.toString() || '',
+        JSON.stringify(entry.data).substring(0, 100) // Truncate for CSV
+      ];
+    });
 
     return [
       headers.join(','),
