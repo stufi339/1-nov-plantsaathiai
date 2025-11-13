@@ -1,3 +1,6 @@
+// CRITICAL: Import safe date handler FIRST to override Date.prototype globally
+import "./lib/safeDateHandler";
+
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
