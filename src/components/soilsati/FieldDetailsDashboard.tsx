@@ -185,10 +185,35 @@ export const FieldDetailsDashboard = () => {
 
   const field = fieldData;
 
-  const growthDays = Math.floor((Date.now() - new Date(field.sowingDate).getTime()) / (1000 * 60 * 60 * 24));
-  const harvestDays = Math.floor((new Date(field.expectedHarvestDate).getTime() - new Date(field.sowingDate).getTime()) / (1000 * 60 * 60 * 24));
-  const growthPercentage = Math.min((growthDays / harvestDays) * 100, 100); // Cap at 100%
-  const canPredictYield = growthPercentage >= 85;
+  // Safe date calculations with error handling
+  const calculateGrowthMetrics = () => {
+    try {
+      if (!field.sowingDate) return { growthDays: 0, harvestDays: 120, growthPercentage: 0, canPredictYield: false };
+      
+      const sowingTime = new Date(field.sowingDate).getTime();
+      if (isNaN(sowingTime)) return { growthDays: 0, harvestDays: 120, growthPercentage: 0, canPredictYield: false };
+      
+      const growthDays = Math.floor((Date.now() - sowingTime) / (1000 * 60 * 60 * 24));
+      
+      let harvestDays = 120; // Default
+      if (field.expectedHarvestDate) {
+        const harvestTime = new Date(field.expectedHarvestDate).getTime();
+        if (!isNaN(harvestTime)) {
+          harvestDays = Math.floor((harvestTime - sowingTime) / (1000 * 60 * 60 * 24));
+        }
+      }
+      
+      const growthPercentage = Math.min(Math.max((growthDays / harvestDays) * 100, 0), 100);
+      const canPredictYield = growthPercentage >= 85;
+      
+      return { growthDays, harvestDays, growthPercentage, canPredictYield };
+    } catch (error) {
+      console.warn('Error calculating growth metrics:', error);
+      return { growthDays: 0, harvestDays: 120, growthPercentage: 0, canPredictYield: false };
+    }
+  };
+  
+  const { growthDays, harvestDays, growthPercentage, canPredictYield } = calculateGrowthMetrics();
 
   // Fetch satellite data with daily caching
   const fetchSatelliteData = async () => {
@@ -369,7 +394,17 @@ export const FieldDetailsDashboard = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-xs text-muted-foreground mb-1">{t('sowing_date')}</p>
-              <p className="text-sm font-semibold">{new Date(field.sowingDate).toLocaleDateString()}</p>
+              <p className="text-sm font-semibold">
+                {(() => {
+                  try {
+                    if (!field.sowingDate) return 'Not set';
+                    const date = new Date(field.sowingDate);
+                    return isNaN(date.getTime()) ? 'Invalid date' : date.toLocaleDateString();
+                  } catch (error) {
+                    return 'Invalid date';
+                  }
+                })()}
+              </p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground mb-1">{t('expected_harvest')}</p>
@@ -398,7 +433,17 @@ export const FieldDetailsDashboard = () => {
               variant="ghost"
               size="sm"
               onClick={() => {
-                const fieldSummaryText = `This is ${field.name}, a ${field.area} hectare field growing ${field.cropType} variety ${field.variety}. The crop was sown on ${new Date(field.sowingDate).toLocaleDateString()} and is currently at day ${growthDays} of its ${harvestDays} day growth cycle.`;
+                const sowingDateText = (() => {
+                  try {
+                    if (!field.sowingDate) return 'an unknown date';
+                    const date = new Date(field.sowingDate);
+                    return isNaN(date.getTime()) ? 'an unknown date' : date.toLocaleDateString();
+                  } catch (error) {
+                    return 'an unknown date';
+                  }
+                })();
+                
+                const fieldSummaryText = `This is ${field.name}, a ${field.area} hectare field growing ${field.cropType} variety ${field.variety}. The crop was sown on ${sowingDateText} and is currently at day ${growthDays} of its ${harvestDays} day growth cycle.`;
                 
                 blackBoxService.logAudioInteraction('field-summary', 'soil_summary', fieldSummaryText, fieldId || field.id);
                 blackBoxService.logUserInteraction('audio_play', 'field_summary', fieldId || field.id);
