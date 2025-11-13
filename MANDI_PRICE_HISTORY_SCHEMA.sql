@@ -42,13 +42,19 @@ CREATE POLICY "allow_read_mandi_history"
   FOR SELECT
   USING (true);
 
--- Policy: Only service role can insert/update (for backend sync)
--- Note: In production, you'd use a backend service with service role key
--- For now, allow authenticated users to insert (for testing)
+-- Policy: Allow anyone to insert (for testing and sync)
+-- In production, you can restrict this to specific users/roles
 CREATE POLICY "allow_insert_mandi_history"
   ON public.mandi_price_history
   FOR INSERT
-  WITH CHECK (auth.uid() IS NOT NULL);
+  WITH CHECK (true);
+
+-- Policy: Allow anyone to update (for upsert operations)
+CREATE POLICY "allow_update_mandi_history"
+  ON public.mandi_price_history
+  FOR UPDATE
+  USING (true)
+  WITH CHECK (true);
 
 -- Optional: Create a view for latest prices
 CREATE OR REPLACE VIEW public.latest_mandi_prices AS

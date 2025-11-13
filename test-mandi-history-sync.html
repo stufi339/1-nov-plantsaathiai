@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Mandi Price History Sync</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #667eea;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    button:hover {
+      transform: translateY(-2px);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      font-weight: 500;
+    }
+    .status.loading {
+      background: #fff3cd;
+      color: #856404;
+    }
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+    }
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    .log {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+    }
+    .log-entry {
+      margin-bottom: 8px;
+      padding: 5px;
+      border-left: 3px solid #667eea;
+      padding-left: 10px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌾 Mandi Price History Sync</h1>
+    <p class="subtitle">Test and populate your price history database</p>
+
+    <div>
+      <button id="syncBtn" onclick="syncPrices()">🔄 Sync Today's Prices</button>
+      <button onclick="checkHistory()">📊 Check History</button>
+      <button onclick="testTrend()">📈 Test Trend</button>
+      <button onclick="clearLogs()">🗑️ Clear Logs</button>
+    </div>
+
+    <div id="status"></div>
+
+    <div class="stats" id="stats" style="display: none;">
+      <div class="stat-card">
+        <div class="stat-value" id="recordCount">0</div>
+        <div class="stat-label">Records Saved</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="cropCount">0</div>
+        <div class="stat-label">Crops Tracked</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="marketCount">0</div>
+        <div class="stat-label">Markets</div>
+      </div>
+    </div>
+
+    <div class="log" id="log"></div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    const supabaseUrl = 'https://oislgcwardyvphznqoku.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pc2xnY3dhcmR5dnBoem5xb2t1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwMDQ1NTgsImV4cCI6MjA3NzU4MDU1OH0.hJCvKI8Qs4tAkWBa4xKakmQs90xrhdRDQ6MkStiAzKA';
+    
+    window.supabase = createClient(supabaseUrl, supabaseKey);
+
+    const TRACKED_CROPS = [
+      'rice', 'wheat', 'cotton', 'sugarcane', 'maize', 'soybean',
+      'pulses', 'oilseeds', 'jute', 'bajra', 'coffee', 'banana',
+      'potato', 'onion', 'tomato', 'groundnut', 'chilli'
+    ];
+
+    function log(message, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logDiv.appendChild(entry);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function setStatus(message, type) {
+      const statusDiv = document.getElementById('status');
+      statusDiv.className = `status ${type}`;
+      statusDiv.textContent = message;
+    }
+
+    function updateStats(records, crops, markets) {
+      document.getElementById('stats').style.display = 'grid';
+      document.getElementById('recordCount').textContent = records;
+      document.getElementById('cropCount').textContent = crops;
+      document.getElementById('marketCount').textContent = markets;
+    }
+
+    window.clearLogs = function() {
+      document.getElementById('log').innerHTML = '';
+      document.getElementById('status').innerHTML = '';
+    };
+
+    window.syncPrices = async function() {
+      const btn = document.getElementById('syncBtn');
+      btn.disabled = true;
+      setStatus('🔄 Syncing prices from government API...', 'loading');
+      log('Starting price sync...');
+
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        let totalSaved = 0;
+        const cropsProcessed = new Set();
+        const marketsProcessed = new Set();
+
+        for (const crop of TRACKED_CROPS) {
+          log(`Fetching ${crop} prices...`);
+          
+          try {
+            // Fetch from government API
+            const apiKey = '579b464db66ec23bdd000001202fcaea6305476e63fed6713084a1b4';
+            const url = `https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key=${apiKey}&format=json&filters[commodity]=${crop}&limit=50`;
+            
+            const response = await fetch(url);
+            const data = await response.json();
+            const prices = data.records || [];
+
+            if (prices.length === 0) {
+              log(`No prices found for ${crop}`, 'warning');
+              continue;
+            }
+
+            // Group by market
+            const marketPrices = new Map();
+            for (const price of prices) {
+              const key = `${price.state}-${price.district}-${price.market}`;
+              if (!marketPrices.has(key)) {
+                marketPrices.set(key, price);
+                marketsProcessed.add(key);
+              }
+            }
+
+            // Save to Supabase
+            const records = Array.from(marketPrices.values()).map(price => ({
+              commodity: price.commodity,
+              state: price.state,
+              district: price.district,
+              market: price.market,
+              date: today,
+              min_price: parseFloat(price.min_price) || 0,
+              max_price: parseFloat(price.max_price) || 0,
+              modal_price: parseFloat(price.modal_price) || 0
+            }));
+
+            if (records.length > 0) {
+              const { error } = await window.supabase
+                .from('mandi_price_history')
+                .upsert(records, {
+                  onConflict: 'commodity,state,district,market,date',
+                  ignoreDuplicates: false
+                });
+
+              if (error) {
+                log(`❌ Error saving ${crop}: ${error.message}`, 'error');
+              } else {
+                totalSaved += records.length;
+                cropsProcessed.add(crop);
+                log(`✅ Saved ${records.length} ${crop} prices`);
+              }
+            }
+
+            // Small delay to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 500));
+          } catch (error) {
+            log(`❌ Error processing ${crop}: ${error.message}`, 'error');
+          }
+        }
+
+        setStatus(`✅ Sync complete! Saved ${totalSaved} price records`, 'success');
+        updateStats(totalSaved, cropsProcessed.size, marketsProcessed.size);
+        log(`🎉 Sync complete: ${totalSaved} records, ${cropsProcessed.size} crops, ${marketsProcessed.size} markets`);
+      } catch (error) {
+        setStatus(`❌ Sync failed: ${error.message}`, 'error');
+        log(`❌ Sync failed: ${error.message}`, 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    window.checkHistory = async function() {
+      log('Checking price history...');
+      setStatus('📊 Checking database...', 'loading');
+
+      try {
+        const { data, error } = await window.supabase
+          .from('mandi_price_history')
+          .select('*')
+          .limit(10);
+
+        if (error) throw error;
+
+        if (data.length === 0) {
+          setStatus('⚠️ No data found. Click "Sync Today\'s Prices" to populate.', 'error');
+          log('No data in database yet');
+        } else {
+          setStatus(`✅ Found ${data.length} records in database`, 'success');
+          log(`Found ${data.length} records:`);
+          data.forEach(record => {
+            log(`  ${record.commodity} - ${record.market} - ₹${record.modal_price}`);
+          });
+        }
+      } catch (error) {
+        setStatus(`❌ Error: ${error.message}`, 'error');
+        log(`❌ Error: ${error.message}`, 'error');
+      }
+    };
+
+    window.testTrend = async function() {
+      log('Testing price trend calculation...');
+      setStatus('📈 Calculating trends...', 'loading');
+
+      try {
+        const { data, error } = await window.supabase
+          .from('mandi_price_history')
+          .select('commodity, date, modal_price')
+          .eq('commodity', 'rice')
+          .order('date', { ascending: false })
+          .limit(30);
+
+        if (error) throw error;
+
+        if (data.length < 2) {
+          setStatus('⚠️ Not enough data for trend. Need at least 2 days.', 'error');
+          log('Need more historical data for trends');
+        } else {
+          const latest = data[0];
+          const previous = data[1];
+          const change = latest.modal_price - previous.modal_price;
+          const changePercent = ((change / previous.modal_price) * 100).toFixed(2);
+
+          setStatus(`✅ Rice trend: ${changePercent}% (₹${change})`, 'success');
+          log(`Rice price trend:`);
+          log(`  Current: ₹${latest.modal_price}`);
+          log(`  Previous: ₹${previous.modal_price}`);
+          log(`  Change: ${changePercent}% (₹${change})`);
+          log(`  Total records: ${data.length} days`);
+        }
+      } catch (error) {
+        setStatus(`❌ Error: ${error.message}`, 'error');
+        log(`❌ Error: ${error.message}`, 'error');
+      }
+    };
+
+    // Auto-check on load
+    window.addEventListener('load', () => {
+      log('🌾 Mandi Price History Test Tool Ready');
+      log('Click "Sync Today\'s Prices" to populate the database');
+      checkHistory();
+    });
+  </script>
+</body>
+</html>

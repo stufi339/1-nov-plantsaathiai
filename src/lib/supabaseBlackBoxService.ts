@@ -22,6 +22,13 @@ export class SupabaseBlackBoxService {
   static async syncEvents(events: BlackBoxSyncEvent[]): Promise<{ stored: number }> {
     if (!events.length) return { stored: 0 };
 
+    // Check if user is authenticated first
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.warn('BlackBox sync skipped: user not authenticated');
+      return { stored: 0 };
+    }
+
     const mapped = events.map((e) => ({
       session_id: e.sessionId,
       event_time: e.eventTime,
@@ -35,7 +42,12 @@ export class SupabaseBlackBoxService {
       .insert(mapped, { count: 'exact' });
 
     if (error) {
-      console.error('BlackBox Supabase sync failed:', error);
+      console.error('BlackBox Supabase sync failed:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       throw error;
     }
 
@@ -56,6 +68,13 @@ export class SupabaseBlackBoxService {
    */
   static async flushCurrentSession(): Promise<{ stored: number }> {
     try {
+      // Check if user is authenticated first
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.warn('BlackBox flush skipped: user not authenticated');
+        return { stored: 0 };
+      }
+
       const exportJson = JSON.parse(blackBoxService.exportLogs());
       const { sessionInfo, logs } = exportJson;
 
@@ -132,8 +151,13 @@ export class SupabaseBlackBoxService {
       blackBoxService.clearLogs();
 
       return result;
-    } catch (error) {
-      console.error('BlackBox flushCurrentSession failed:', error);
+    } catch (error: any) {
+      console.error('BlackBox flushCurrentSession failed:', {
+        message: error?.message || 'Unknown error',
+        details: error?.details,
+        hint: error?.hint,
+        code: error?.code
+      });
       return { stored: 0 };
     }
   }
