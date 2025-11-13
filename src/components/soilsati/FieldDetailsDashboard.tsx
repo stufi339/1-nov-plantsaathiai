@@ -144,7 +144,11 @@ export const FieldDetailsDashboard = () => {
   }, [fieldId, navigate, toast]);
 
   const calculateExpectedHarvest = (sowingDate: string, cropType: string) => {
+    if (!sowingDate) return 'Not set';
+    
     const sowing = new Date(sowingDate);
+    if (isNaN(sowing.getTime())) return 'Invalid date';
+    
     const daysToHarvest = cropType.toLowerCase() === 'rice' ? 150 : 
                           cropType.toLowerCase() === 'wheat' ? 120 : 90;
     const harvest = new Date(sowing);
