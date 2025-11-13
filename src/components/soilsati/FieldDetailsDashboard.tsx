@@ -81,16 +81,26 @@ export const FieldDetailsDashboard = () => {
           
           console.log('Loaded field data:', parsedField);
           
-          // Calculate center coordinates from polygon
+          // Calculate center coordinates from polygon with validation
           const coords = parsedField.coordinates || [];
           let centerLat = 0, centerLng = 0;
           if (coords.length > 0) {
-            coords.forEach(([lng, lat]: [number, number]) => {
-              centerLng += lng;
-              centerLat += lat;
+            let validCoords = 0;
+            coords.forEach((coord: any) => {
+              // Validate coordinate is an array with 2 elements
+              if (Array.isArray(coord) && coord.length >= 2) {
+                const [lng, lat] = coord;
+                if (typeof lng === 'number' && typeof lat === 'number') {
+                  centerLng += lng;
+                  centerLat += lat;
+                  validCoords++;
+                }
+              }
             });
-            centerLat /= coords.length;
-            centerLng /= coords.length;
+            if (validCoords > 0) {
+              centerLat /= validCoords;
+              centerLng /= validCoords;
+            }
           }
           
           // Check if we have cached satellite data
