@@ -39,7 +39,7 @@ export const FieldMappingView = () => {
         throw new Error('Failed to create field in Supabase');
       }
       
-      console.log('Field saved to Supabase successfully:', newField);
+      console.log('✅ Field saved to Supabase successfully:', newField);
       
       // 🔥 LOG TO BLACKBOX
       import('@/lib/blackBoxService').then(({ blackBoxService }) => {
