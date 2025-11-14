@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Old Data - Plant Saathi</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 15px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            display: none;
+        }
+        .warning {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+        }
+        .badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-found {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .badge-clean {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🧹 Clear Old Data</h1>
+        <p class="subtitle">Migrate from localStorage to Supabase Cloud</p>
+
+        <div class="info">
+            <strong>ℹ️ Why clear localStorage?</strong><br>
+            Your app now uses Supabase cloud storage. Old data in localStorage needs to be cleared so you can see your real cloud data.
+        </div>
+
+        <div class="status" id="status">
+            <h3>Current Status:</h3>
+            <div id="statusContent">Checking...</div>
+        </div>
+
+        <button onclick="clearOldData()">🗑️ Clear Old Data</button>
+        <button onclick="window.location.href='/'">🏠 Go to Dashboard</button>
+
+        <div class="success" id="successMessage">
+            <strong>✅ Success!</strong><br>
+            Old data cleared. You can now create new fields that will save to Supabase cloud.
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ Note:</strong> This will clear old cached fields. Your new fields in Supabase cloud are safe and will remain.
+        </div>
+    </div>
+
+    <script>
+        function checkStatus() {
+            const statusContent = document.getElementById('statusContent');
+            let html = '';
+            
+            // Check for old field data
+            let oldFieldCount = 0;
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.startsWith('field_') || key === 'fields_list')) {
+                    oldFieldCount++;
+                }
+            }
+            
+            html += `
+                <div class="status-item">
+                    <span>Old Field Data:</span>
+                    <span class="badge ${oldFieldCount > 0 ? 'badge-found' : 'badge-clean'}">
+                        ${oldFieldCount > 0 ? `${oldFieldCount} items found` : 'Clean'}
+                    </span>
+                </div>
+            `;
+            
+            // Check for onboarding flag
+            const hasOnboarding = localStorage.getItem('onboarding_complete');
+            html += `
+                <div class="status-item">
+                    <span>Onboarding Flag:</span>
+                    <span class="badge ${hasOnboarding ? 'badge-found' : 'badge-clean'}">
+                        ${hasOnboarding ? 'Found' : 'Clean'}
+                    </span>
+                </div>
+            `;
+            
+            // Check total localStorage size
+            html += `
+                <div class="status-item">
+                    <span>Total localStorage Items:</span>
+                    <span class="badge ${localStorage.length > 5 ? 'badge-found' : 'badge-clean'}">
+                        ${localStorage.length} items
+                    </span>
+                </div>
+            `;
+            
+            statusContent.innerHTML = html;
+        }
+        
+        function clearOldData() {
+            let cleared = 0;
+            
+            // Clear old field data
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (
+                    key.startsWith('field_') || 
+                    key === 'fields_list' ||
+                    key === 'onboarding_complete'
+                )) {
+                    keysToRemove.push(key);
+                }
+            }
+            
+            keysToRemove.forEach(key => {
+                localStorage.removeItem(key);
+                cleared++;
+            });
+            
+            // Show success message
+            document.getElementById('successMessage').style.display = 'block';
+            
+            // Update status
+            checkStatus();
+            
+            console.log(`✅ Cleared ${cleared} old localStorage items`);
+        }
+        
+        // Check status on load
+        checkStatus();
+    </script>
+</body>
+</html>
