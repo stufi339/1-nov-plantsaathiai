@@ -209,7 +209,7 @@ export const DiseaseDetectionView = () => {
     }
   };
 
-  const handleOutbreakResponse = (isOutbreak: boolean) => {
+  const handleOutbreakResponse = async (isOutbreak: boolean) => {
     // Check if it's a healthy plant or invalid image - skip outbreak prompt
     const isHealthy = diseaseResult?.disease_name.toLowerCase().includes('healthy') || 
                       diseaseResult?.disease_name.toLowerCase().includes('no disease');
@@ -224,8 +224,8 @@ export const DiseaseDetectionView = () => {
     }
     
     if (isOutbreak) {
-      // Load user's fields from localStorage
-      const fields = loadUserFields();
+      // Load user's fields from Supabase
+      const fields = await loadUserFields();
       setUserFields(fields);
       
       if (fields.length === 0) {
@@ -266,7 +266,7 @@ export const DiseaseDetectionView = () => {
     }
   };
 
-  const loadUserFields = (): Array<{ id: string; name: string }> => {
+  const loadUserFields = async (): Promise<Array<{ id: string; name: string }>> => {
     try {
       // Load fields from Supabase
       const { supabaseFieldService } = await import('@/lib/supabaseFieldService');
