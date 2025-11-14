@@ -21,10 +21,17 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     const user = await supabaseAuthService.getCurrentUser();
     setAuthenticated(!!user);
     
-    // Check if user has completed onboarding
+    // Check if user has completed onboarding from Supabase user metadata
     if (user) {
-      const onboardingComplete = localStorage.getItem('onboarding_complete');
-      setNeedsOnboarding(!onboardingComplete);
+      try {
+        const { supabase } = await import('@/lib/supabase');
+        const { data: { user: fullUser } } = await supabase.auth.getUser();
+        const onboardingComplete = fullUser?.user_metadata?.onboarding_complete;
+        setNeedsOnboarding(!onboardingComplete);
+      } catch (error) {
+        console.error('Failed to check onboarding status:', error);
+        setNeedsOnboarding(false); // Default to not needing onboarding on error
+      }
     }
     
     setLoading(false);

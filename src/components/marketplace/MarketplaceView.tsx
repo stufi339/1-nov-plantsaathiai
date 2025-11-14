@@ -37,26 +37,16 @@ export const MarketplaceView = () => {
     }
   }, [selectedField]);
 
-  const loadFields = () => {
+  const loadFields = async () => {
     try {
-      const fieldIds: { id: string; name: string }[] = [];
-
-      // Get all fields from localStorage
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('field_') && key.endsWith('_data')) {
-          const fieldId = key.replace('field_', '').replace('_data', '');
-          const fieldDataStr = localStorage.getItem(key);
-          
-          if (fieldDataStr) {
-            const fieldData = JSON.parse(fieldDataStr);
-            fieldIds.push({
-              id: fieldId,
-              name: fieldData.name || fieldId,
-            });
-          }
-        }
-      }
+      // Get all fields from Supabase
+      const { supabaseFieldService } = await import('@/lib/supabaseFieldService');
+      const fieldsData = await supabaseFieldService.getFields();
+      
+      const fieldIds = fieldsData.map(field => ({
+        id: field.id,
+        name: field.name
+      }));
 
       setFields(fieldIds);
 

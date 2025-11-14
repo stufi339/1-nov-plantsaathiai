@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Date Fix Test</title>
+</head>
+<body>
+    <h1>Date Fix Test</h1>
+    <div id="result"></div>
+    
+    <script>
+        const result = document.getElementById('result');
+        
+        // Test 1: Invalid date
+        try {
+            const invalidDate = new Date('invalid-date-string');
+            const isoString = invalidDate.toISOString();
+            result.innerHTML += '<p style="color: red;">❌ TEST FAILED: Invalid date should have been caught</p>';
+        } catch (error) {
+            result.innerHTML += '<p style="color: green;">✅ TEST PASSED: Invalid date was caught: ' + error.message + '</p>';
+        }
+        
+        // Test 2: Check if we're on the new build
+        const scripts = Array.from(document.scripts);
+        const buildFile = scripts.find(s => s.src.includes('index-'))?.src || 'Not found';
+        result.innerHTML += '<p><strong>Build file:</strong> ' + buildFile + '</p>';
+        
+        if (buildFile.includes('index-BAIs1_Ry.js')) {
+            result.innerHTML += '<p style="color: red; font-size: 20px;">⚠️ YOU ARE VIEWING THE OLD CACHED BUILD!</p>';
+            result.innerHTML += '<p>Clear your cache and refresh!</p>';
+        } else if (buildFile.includes('index-IQvqYELy.js')) {
+            result.innerHTML += '<p style="color: green; font-size: 20px;">✅ You are on the NEW build!</p>';
+        }
+        
+        // Test 3: Current timestamp
+        result.innerHTML += '<p><strong>Page loaded at:</strong> ' + new Date().toISOString() + '</p>';
+    </script>
+</body>
+</html>

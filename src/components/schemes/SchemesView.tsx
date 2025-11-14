@@ -254,14 +254,23 @@ const useUserContext = () => {
   });
 
   useEffect(() => {
-    // Load user fields to determine crops and location
-    const fields = JSON.parse(localStorage.getItem('fields_list') || '[]');
-    const crops = [...new Set(fields.map((field: any) => field.cropType).filter(Boolean))] as string[];
+    // Load user fields from Supabase to determine crops and location
+    const loadFields = async () => {
+      try {
+        const { supabaseFieldService } = await import('@/lib/supabaseFieldService');
+        const fields = await supabaseFieldService.getFields();
+        const crops = [...new Set(fields.map((field: any) => field.crop_type).filter(Boolean))] as string[];
 
-    setUserData(prev => ({
-      ...prev,
-      crops
-    }));
+        setUserData(prev => ({
+          ...prev,
+          crops
+        }));
+      } catch (error) {
+        console.error('Failed to load fields:', error);
+      }
+    };
+    
+    loadFields();
   }, []);
 
   return userData;

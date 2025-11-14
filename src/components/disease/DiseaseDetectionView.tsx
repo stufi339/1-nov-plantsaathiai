@@ -268,18 +268,14 @@ export const DiseaseDetectionView = () => {
 
   const loadUserFields = (): Array<{ id: string; name: string }> => {
     try {
-      const fields: Array<{ id: string; name: string }> = [];
+      // Load fields from Supabase
+      const { supabaseFieldService } = await import('@/lib/supabaseFieldService');
+      const fieldsData = await supabaseFieldService.getFields();
       
-      // Load fields from localStorage
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('field_') && key.endsWith('_data')) {
-          const fieldData = JSON.parse(localStorage.getItem(key) || '{}');
-          const fieldId = key.replace('field_', '').replace('_data', '');
-          const fieldName = fieldData.fieldName || fieldData.name || `Field ${fieldId.slice(0, 8)}`;
-          fields.push({ id: fieldId, name: fieldName });
-        }
-      }
+      const fields = fieldsData.map(field => ({
+        id: field.id,
+        name: field.name
+      }));
 
       return fields;
     } catch (error) {

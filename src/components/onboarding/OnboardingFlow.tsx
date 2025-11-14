@@ -74,8 +74,11 @@ export default function OnboardingFlow() {
                 description: 'Your field has been registered successfully.',
             });
 
-            // Mark onboarding as complete
-            localStorage.setItem('onboarding_complete', 'true');
+            // Mark onboarding as complete in Supabase
+            const { supabase } = await import('@/lib/supabase');
+            await supabase.auth.updateUser({
+                data: { onboarding_complete: true }
+            });
             
             // Force navigation and reload to ensure state updates
             navigate('/dashboard', { replace: true });
@@ -92,9 +95,12 @@ export default function OnboardingFlow() {
         }
     };
 
-    const handleSkip = () => {
-        // Mark onboarding as complete
-        localStorage.setItem('onboarding_complete', 'true');
+    const handleSkip = async () => {
+        // Mark onboarding as complete in Supabase
+        const { supabase } = await import('@/lib/supabase');
+        await supabase.auth.updateUser({
+            data: { onboarding_complete: true }
+        });
         
         toast({
             title: 'Skipped',
