@@ -21,54 +21,32 @@ export const FieldMappingView = () => {
     setShowForm(true);
   };
 
-  const handleSaveField = (fieldData: any) => {
-    // Generate unique field ID (without "field_" prefix since we add it when storing)
-    const fieldId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    const completeFieldData = {
-      id: fieldId,
-      ...fieldData,
-      coordinates,
-      area,
-      createdAt: new Date().toISOString(),
-      health: {
-        ndvi: 0,
-        status: "unknown"
-      }
-    };
-    
-    console.log("Saving field:", completeFieldData);
-    
-    // Save to localStorage
+  const handleSaveField = async (fieldData: any) => {
     try {
-      // Save field data with field_ prefix
-      localStorage.setItem(`field_${fieldId}_data`, JSON.stringify(completeFieldData));
+      // Save to Supabase
+      const { supabaseFieldService } = await import('@/lib/supabaseFieldService');
       
-      // Update fields list
-      const existingFields = JSON.parse(localStorage.getItem('fields_list') || '[]');
-      existingFields.push({
-        id: fieldId,
+      const newField = await supabaseFieldService.createField({
         name: fieldData.name,
-        cropType: fieldData.cropType,
-        area: area,
-        sowingDate: fieldData.sowingDate,
-        createdAt: completeFieldData.createdAt,
-        health: {
-          ndvi: 0,
-          status: "unknown"
-        }
+        crop_type: fieldData.cropType,
+        area: area || 0,
+        coordinates: coordinates || [],
+        sowing_date: fieldData.sowingDate,
+        status: 'active'
       });
-      localStorage.setItem('fields_list', JSON.stringify(existingFields));
       
-      console.log('Field saved to localStorage successfully:', fieldId);
-      console.log('Fields list:', existingFields);
+      if (!newField) {
+        throw new Error('Failed to create field in Supabase');
+      }
+      
+      console.log('Field saved to Supabase successfully:', newField);
       
       // 🔥 LOG TO BLACKBOX
       import('@/lib/blackBoxService').then(({ blackBoxService }) => {
         blackBoxService.logUserInteraction(
           'field_creation',
           'field_mapping_complete',
-          fieldId,
+          newField.id,
           {
             fieldName: fieldData.name,
             cropType: fieldData.cropType,
@@ -80,6 +58,8 @@ export const FieldMappingView = () => {
         );
       });
       
+      navigate("/soilsati");
+      
     } catch (error) {
       console.error('Failed to save field:', error);
       
@@ -88,13 +68,16 @@ export const FieldMappingView = () => {
         blackBoxService.logError(
           'storage_error',
           error instanceof Error ? error.message : 'Unknown error',
-          fieldId,
+          'field_save',
           'field_save_operation'
         );
       });
+      
+      // Show error to user
+      import('sonner').then(({ toast }) => {
+        toast.error('Failed to save field. Please try again.');
+      });
     }
-    
-    navigate("/soilsati");
   };
 
   if (showForm && coordinates && area) {
